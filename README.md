@@ -2,7 +2,7 @@
 
 <img src="src/main/resources/icon.png" alt="MekaSuit Arcana Icon" width="96" align="right" />
 
-[![CI](https://github.com/H-H-E/mekasuit-arcana/actions/workflows/ci.yml/badge.svg)](https://github.com/H-H-E/mekasuit-arcana/actions/workflows/ci.yml)
+[![CI](https://github.com/codecraft3r/mekasuit-arcana/actions/workflows/ci.yml/badge.svg)](https://github.com/codecraft3r/mekasuit-arcana/actions/workflows/ci.yml)
 
 **Early preview.** 36 unit tests and 16 isolated server assertions have passed.
 Connected-client GUI and full-modpack playtesting remain unverified.
@@ -14,81 +14,74 @@ Five Mekanism modules add powered magic support to MekaSuit Bodyarmor.
 Amplification and Focus Units also work on a held Meka-Tool using staff-style
 attribute bonuses. Use your existing spellbook and Iron's normal casting controls.
 
-| Unit | Install cap | Maximum contribution per carrier |
-| --- | ---: | --- |
-| Mana Conversion | 4 | Mana capacity curve 1000 / 4000 / 7000 / 10000 and FE-to-mana conversion |
-| Amplification | 4 | +400% global spell-power rating (+100% per unit) |
-| Focus | 4 | +400% spell-power rating in one selected school (+100% per unit) |
-| Cooldown Reduction | 4 | 25% spell cooldown reduction per unit (100% / no cooldown at 4 units) |
-| Casting Stabilization | 4 | 25% cast time reduction per unit (100% / instant cast at 4 units); uninterruptible casting (concentration) and full casting movement at 1+ units |
+## Modules Overview
 
-Cooldown Reduction provides direct linear spell cooldown reduction (25% per installed unit,
-reaching complete cooldown elimination at 4 units). Casting Stabilization linearly reduces spell
-cast duration (25% per installed unit, reaching instant cast at 4 units), removes the casting
-movement penalty at 1+ units, and grants uninterruptible casting concentration (identical to the
-Amulet of Concentration) when 1 or more units are installed and powered.
+| Unit | Supported Carriers | Max Units | Effect per Unit | Max Contribution (4 Units) | Utility & Notes |
+| --- | --- | ---: | --- | --- | --- |
+| **Mana Conversion Unit** | Bodyarmor | 4 | Capacity tier + FE-to-mana conversion | 10,000 Max Mana, 50k FE/t conversion | Configurable speed presets |
+| **Amplification Unit** | Bodyarmor, Meka-Tool | 4 | +100% Spell Power (all schools) | **+400% Spell Power** | Stacks additively across carriers |
+| **Focus Unit** | Bodyarmor, Meka-Tool | 4 | +100% Spell Power (selected school) | **+400% School Spell Power** | Configurable spell school |
+| **Cooldown Reduction Unit** | Bodyarmor | 4 | -25% Spell Cooldown | **-100% Spell Cooldown (0s cooldown)** | Linear duration-based FE cost |
+| **Casting Stabilization Unit** | Bodyarmor | 4 | -25% Cast Duration | **-100% Cast Duration (Instant cast)** | **Uninterruptible concentration** & **no movement penalty** (1+ units) |
 
-## Using the modules
+### Key Module Mechanics
 
-Craft the modules, install them through Mekanism's Modification Station, then use
-the Module Tweaker to enable them, select a Focus school, adjust output, or limit
-mana-conversion power. Helmets, leggings and boots cannot accept these modules.
-The Meka-Tool accepts only Amplification and Focus.
+- **Cooldown Reduction**: Linearly reduces spell cooldown by 25% per installed unit. At 4 units (100% reduction), spell cooldowns are completely eliminated. Energy is consumed upon cast proportional to the cooldown duration saved, plus a baseline slot fee.
+- **Casting Stabilization**: Linearly shortens long-cast spell duration by 25% per installed unit. At 4 units (100% reduction), spells cast instantly. Energy is consumed dynamically based on cast time saved plus a casting maintenance fee.
+  - **Concentration**: Having 1 or more powered units grants uninterruptible casting concentration (identical to the Amulet of Concentration), preventing spell cancellation when taking damage.
+  - **Full Movement**: Having 1 or more powered units completely eliminates the movement slowdown penalty while casting or channeling spells. Continuous (channeled) spells maintain normal duration and pulse intervals while allowing full walking and sprint speed.
+- **Amplification & Focus**: Provide massive spell power scaling (+100% per unit, up to +400% at 4 units). When installed on both a MekaSuit Bodyarmor and a Meka-Tool, their contributions stack additively (up to +800% combined spell power). Billed per cast event (or per channel pulse).
 
-Bodyarmor and tool retain independent unit caps, output settings, Focus selections,
-and energy accounts. Their eligible attribute contributions add together.
+## Using the Modules
 
-Every restored mana point costs FE. Amplification charges once per Iron's cast
-event; Focus charges only on events from its selected school. Iron's channeled
-spells emit repeated cast events, so their pulses are billed separately.
-Cooldown Reduction drains energy proportional to cooldown time saved when spells
-are cast, plus a base slot fee. Casting Stabilization drains energy proportional
-to cast duration saved, plus a fixed FE load while casting. Lower output reduces
-reduction percentages and their associated energy costs. Stabilization's concentration
-and movement benefits remain active at 1+ units even at zero output step.
+1. **Crafting**: Craft the module units in a crafting table using Mekanism circuits/alloys and Iron's Spells arcane materials (Scrolls, Tomes, Arcane Cloth, Amulets, etc.).
+2. **Installation**: Install units into MekaSuit Bodyarmor (or Meka-Tool for Amplification and Focus) using Mekanism's Modification Station. Helmets, leggings, and boots cannot accept arcana modules.
+3. **Configuration (Module Tweaker)**: Use Mekanism's Module Tweaker to configure modules in-game:
+   - **Mana Conversion**: Set conversion rate preset (`Low`, `Normal`, `High`, `Maximum`).
+   - **Focus**: Select the targeted spell school (`Fire`, `Ice`, `Lightning`, `Holy`, `Ender`, `Blood`, `Evocation`, `Nature`, `Eldritch`) and output level.
+   - **Output Steps**: Amplification, Focus, Cooldown Reduction, and Casting Stabilization can each be tuned via discrete output steps (`Off`, `1/4`, `2/4`, `3/4`, `Full`) to conserve energy.
+   - *Note*: Casting Stabilization's concentration and movement perks remain active at 1+ units even if the cast reduction output step is set to zero or turned down.
 
-Acceleration is purchased as the native timers advance, so running out of power
-stops further acceleration. Casting itself continues. Continuous spells retain
-Iron's normal channel duration and pulse spacing; the module improves movement
-during those channels.
+## Energy Accounting & Failsafes
 
-Mana conversion uses Iron's existing mana pool and ordinary regeneration remains
-active. Each installed converter raises the conversion throughput available at a
-chosen preset. The mana capacity curve describes an otherwise unmodified player's
-capacity; other equipment can still contribute its own modifiers.
+- Every restored mana point costs Forge Energy (FE).
+- Running out of energy gracefully suspends module enhancements:
+  - If energy is depleted during a cast, cast acceleration stops and the spell finishes at native speed without breaking.
+  - If energy is depleted, mana regeneration reverts to Iron's default background rate and cooldowns revert to standard length.
+- Bodyarmor and Meka-Tool maintain independent unit caps, output configurations, and energy storage pools.
+
+## Server Configuration
+
+Server balance configuration is automatically generated at `world/serverconfig/mekasuitarcana-server.toml`. Server operators can customize:
+- `fe_per_mana`: FE cost per unit of mana converted.
+- Max unit limits (0–4) and enabled/disabled status for each individual module type.
+- Base energy costs and per-saved-tick scaling rates for cooldown reduction and cast stabilization.
+- Mana capacity curve tiers (defaults: 1,000 / 4,000 / 7,000 / 10,000) and preset speed limits.
+- Spell power percentage multipliers per unit (defaults: 100.0% per unit).
 
 ## Building
 
-Requires Java 21 and Python 3.11 or newer. Gradle resolves the pinned
-compile-only Mekanism and Iron's Spellbooks artifacts from Modrinth Maven;
-neither is bundled or committed:
+Requires Java 21 and Python 3.11 or newer. Gradle resolves compile-only Mekanism and Iron's Spellbooks dependencies from Modrinth Maven:
 
-    ./gradlew build runtimeTestJar --console=plain
-    python tools/verify-release.py
+```bash
+./gradlew build runtimeTestJar --console=plain
+python tools/verify-release.py
+```
 
-On Windows replace `./gradlew` with `.\gradlew.bat`.
+On Windows, replace `./gradlew` with `.\gradlew.bat`.
 
-Output: build/libs/mekasuit-arcana-0.1.0.jar. Install this jar on both server and
-client alongside Mekanism, Iron's Spellbooks and their normal dependencies.
-
-Server balance configuration is generated under the world's serverconfig directory
-as mekasuitarcana-server.toml. Module output selections are stored on the carrier
-through Mekanism's own module config system.
+**Output**: `build/libs/mekasuit-arcana-0.1.0.jar`. Install this jar on both server and client alongside Mekanism, Iron's Spellbooks, and their standard dependencies.
 
 ## Verification
 
-Plain JUnit tests cover balance and accounting arithmetic. The separate runtime
-harness exercises the production code against the real pinned mods in an isolated
-dedicated server. See docs/RUNTIME_PROOF.md for the actual results and remaining
-client-side checks. A runtime-harness jar is for development only.
-
-Damage routing uses the mods' existing behavior. No extra ward module is included.
+- **Unit Tests**: 36 JUnit tests cover arithmetic, rate conversions, config boundaries, and tuning.
+- **Runtime Verification**: A separate runtime test fixture exercises mod interactions against real pinned binaries on an isolated server thread. See [docs/RUNTIME_PROOF.md](docs/RUNTIME_PROOF.md) for details.
+- **Damage Routing**: Uses standard Mekanism damage absorption pipelines for incoming magic damage.
 
 ## Project
 
-- [Design and balance](docs/DESIGN.md)
-- [Verification and remaining checks](docs/RUNTIME_PROOF.md)
+- [Design Documentation](docs/DESIGN.md)
+- [Verification & Proof](docs/RUNTIME_PROOF.md)
 - [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md)
 
-**All Rights Reserved.** This is a public source-available repository, not an
-open-source license grant. See [LICENSE](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md).
+**All Rights Reserved.** This is a public source-available repository, not an open-source license grant. See [LICENSE](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md).
