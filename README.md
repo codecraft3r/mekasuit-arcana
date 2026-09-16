@@ -11,35 +11,36 @@ Minecraft 1.21.1 / NeoForge 21.1.248 integration for Mekanism 10.7.19.85 and
 Iron's Spells 'n Spellbooks 3.16.3. Java 21 required.
 
 Five Mekanism modules add powered magic support to MekaSuit Bodyarmor.
-Amplification and Focus Units also work on a held Meka-Tool using staff-style
-attribute bonuses. Use your existing spellbook and Iron's normal casting controls.
+Arcane Energy Amplification and Attunable Lens Matrix Units also work on a held
+Meka-Tool using staff-style attribute bonuses. Use your existing spellbook and
+Iron's normal casting controls.
 
 ## Modules Overview
 
 | Unit | Supported Carriers | Max Units | Effect per Unit | Max Contribution (4 Units) | Utility & Notes |
 | --- | --- | ---: | --- | --- | --- |
-| **Mana Conversion Unit** | Bodyarmor | 4 | Capacity tier + FE-to-mana conversion | 10,000 Max Mana, 50k FE/t conversion | Configurable speed presets |
-| **Amplification Unit** | Bodyarmor, Meka-Tool | 4 | +100% Spell Power (all schools) | **+400% Spell Power** | Stacks additively across carriers |
-| **Focus Unit** | Bodyarmor, Meka-Tool | 4 | +100% Spell Power (selected school) | **+400% School Spell Power** | Configurable spell school |
-| **Cooldown Reduction Unit** | Bodyarmor | 4 | -25% Spell Cooldown | **-100% Spell Cooldown (0s cooldown)** | Linear duration-based FE cost |
+| **Arcane Transformer Unit** | Bodyarmor | 4 | Capacity tier + FE-to-mana conversion | 10,000 Max Mana, 50k FE/t conversion | Configurable speed presets |
+| **Arcane Energy Amplification Unit** | Bodyarmor, Meka-Tool | 4 | +100% Spell Power (all schools) | **+400% Spell Power** | Stacks additively across carriers |
+| **Attunable Lens Matrix Unit** | Bodyarmor, Meka-Tool | 4 | +100% Spell Power (selected school) | **+400% School Spell Power** | Configurable spell school |
+| **Rapid Casting Unit** | Bodyarmor | 4 | -25% Spell Cooldown | **-100% Spell Cooldown (0s cooldown)** | Linear duration-based FE cost |
 | **Casting Stabilization Unit** | Bodyarmor | 4 | -25% Cast Duration | **-100% Cast Duration (Instant cast)** | **Uninterruptible concentration** & **no movement penalty** (1+ units) |
 
 ### Key Module Mechanics
 
-- **Cooldown Reduction**: Linearly reduces spell cooldown by 25% per installed unit. At 4 units (100% reduction), spell cooldowns are completely eliminated. Energy is consumed upon cast proportional to the cooldown duration saved, plus a baseline slot fee.
+- **Rapid Casting**: Linearly reduces spell cooldown by 25% per installed unit. At 4 units (100% reduction), spell cooldowns are completely eliminated. Energy is consumed upon cast proportional to the cooldown duration saved, plus a baseline slot fee.
 - **Casting Stabilization**: Linearly shortens long-cast spell duration by 25% per installed unit. At 4 units (100% reduction), spells cast instantly. Energy is consumed dynamically based on cast time saved plus a casting maintenance fee.
   - **Concentration**: Having 1 or more powered units grants uninterruptible casting concentration (identical to the Amulet of Concentration), preventing spell cancellation when taking damage.
   - **Full Movement**: Having 1 or more powered units completely eliminates the movement slowdown penalty while casting or channeling spells. Continuous (channeled) spells maintain normal duration and pulse intervals while allowing full walking and sprint speed.
-- **Amplification & Focus**: Provide massive spell power scaling (+100% per unit, up to +400% at 4 units). When installed on both a MekaSuit Bodyarmor and a Meka-Tool, their contributions stack additively (up to +800% combined spell power). Billed per cast event (or per channel pulse).
+- **Arcane Energy Amplification & Attunable Lens Matrix**: Provide massive spell power scaling (+100% per unit, up to +400% at 4 units). When installed on both a MekaSuit Bodyarmor and a Meka-Tool, their contributions stack additively (up to +800% combined spell power). Billed per cast event (or per channel pulse).
 
 ## Using the Modules
 
 1. **Crafting**: Craft the module units in a crafting table using Mekanism circuits/alloys and Iron's Spells arcane materials (Scrolls, Tomes, Arcane Cloth, Amulets, etc.).
-2. **Installation**: Install units into MekaSuit Bodyarmor (or Meka-Tool for Amplification and Focus) using Mekanism's Modification Station. Helmets, leggings, and boots cannot accept arcana modules.
+2. **Installation**: Install units into MekaSuit Bodyarmor (or Meka-Tool for Arcane Energy Amplification and Attunable Lens Matrix) using Mekanism's Modification Station. Helmets, leggings, and boots cannot accept arcana modules.
 3. **Configuration (Module Tweaker)**: Use Mekanism's Module Tweaker to configure modules in-game:
-   - **Mana Conversion**: Set conversion rate preset (`Low`, `Normal`, `High`, `Maximum`).
-   - **Focus**: Select the targeted spell school (`Fire`, `Ice`, `Lightning`, `Holy`, `Ender`, `Blood`, `Evocation`, `Nature`, `Eldritch`) and output level.
-   - **Output Steps**: Amplification, Focus, Cooldown Reduction, and Casting Stabilization can each be tuned via discrete output steps (`Off`, `1/4`, `2/4`, `3/4`, `Full`) to conserve energy.
+   - **Arcane Transformer**: Set conversion rate preset (`Low`, `Normal`, `High`, `Maximum`).
+   - **Attunable Lens Matrix**: Select the targeted spell school (`Fire`, `Ice`, `Lightning`, `Holy`, `Ender`, `Blood`, `Evocation`, `Nature`, `Eldritch`) and output level.
+   - **Output Steps**: Arcane Energy Amplification, Attunable Lens Matrix, Rapid Casting, and Casting Stabilization can each be tuned via discrete output steps (`Off`, `1/4`, `2/4`, `3/4`, `Full`) to conserve energy.
    - *Note*: Casting Stabilization's concentration and movement perks remain active at 1+ units even if the cast reduction output step is set to zero or turned down.
 
 ## Energy Accounting & Failsafes
