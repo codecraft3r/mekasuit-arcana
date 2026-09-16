@@ -6,10 +6,10 @@ no broader license or copyright assignment is implied by this guide.
 
 ## Development
 
-Use Java 21 and Python 3. Download the pinned compile-only dependencies, then build:
+Use Java 21 and Python 3. Gradle resolves the pinned compile-only dependencies
+from Modrinth Maven:
 
 ```sh
-python tools/fetch-dependencies.py
 ./gradlew build runtimeTestJar
 ```
 

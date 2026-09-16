@@ -26,8 +26,6 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
-      - name: Fetch verified compile-only dependencies
-        run: python3 tools/fetch-dependencies.py
       - name: Build and run unit tests
         run: ./gradlew --no-daemon build runtimeTestJar --console=plain
       - name: Verify release packaging

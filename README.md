@@ -54,10 +54,10 @@ capacity; other equipment can still contribute its own modifiers.
 
 ## Building
 
-Requires Java 21 and Python 3.11 or newer. Download the two exact, SHA-256-verified
-compile-only dependencies; neither is bundled or committed:
+Requires Java 21 and Python 3.11 or newer. Gradle resolves the pinned
+compile-only Mekanism and Iron's Spellbooks artifacts from Modrinth Maven;
+neither is bundled or committed:
 
-    python tools/fetch-dependencies.py
     ./gradlew build runtimeTestJar --console=plain
     python tools/verify-release.py
 

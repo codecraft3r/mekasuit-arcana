@@ -42,12 +42,17 @@ neoForge {
 
 repositories {
     mavenCentral()
+    maven {
+        url = 'https://api.modrinth.com/maven'
+    }
 }
 
-// Integration targets are pinned third-party JARs placed in libs/ (see libs/README.md).
-// They are compile-only: the runtime instance supplies the real, loaded mods.
+// Modrinth Maven coordinates use project IDs: Mekanism = Ce6I4WUE and
+// Iron's Spellbooks = s4OWxYQQ. These are compile-only because the runtime
+// instance supplies the real, loaded mods.
 dependencies {
-    compileOnly fileTree(dir: 'libs', include: ['*.jar'])
+    compileOnly "maven.modrinth:Ce6I4WUE:${mekanism_version}"
+    compileOnly "maven.modrinth:s4OWxYQQ:${irons_spellbooks_version}"
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.3'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.3'
