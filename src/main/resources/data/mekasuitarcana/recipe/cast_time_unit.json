@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "CAC",
+    "QBQ",
+    "CTC"
+  ],
+  "key": {
+    "A": { "item": "irons_spellbooks:concentration_amulet" },
+    "B": { "item": "mekanism:module_base" },
+    "C": { "item": "mekanism:elite_control_circuit" },
+    "Q": { "item": "minecraft:quartz" },
+    "T": { "item": "minecraft:clock" }
+  },
+  "result": {
+    "id": "mekasuitarcana:cast_time_unit",
+    "count": 1
+  }
+}

@@ -54,13 +54,14 @@ class ArcanaConfigTest {
     @DisplayName("caps follow the ModuleKind order")
     void capsFollowModuleKindOrder() {
         ArcanaRates rates = balanceOf(tuned(
-                List.of(0, 111, 222, 333, 444, 555), null, List.of(5, 2, 3, 4, 1), null));
+                List.of(0, 111, 222, 333, 444, 555), null, List.of(5, 2, 3, 4, 1, 2), null));
 
         assertEquals(4, rates.maxUnits(ModuleKind.MANA_CONVERSION), "hard design cap");
         assertEquals(2, rates.maxUnits(ModuleKind.AMPLIFICATION));
         assertEquals(3, rates.maxUnits(ModuleKind.FOCUS));
         assertEquals(4, rates.maxUnits(ModuleKind.COOLDOWN_ACCELERATION));
         assertEquals(1, rates.maxUnits(ModuleKind.CASTING_STABILIZATION));
+        assertEquals(2, rates.maxUnits(ModuleKind.CAST_TIME));
         assertEquals(444, rates.maxManaForUnits(5), "execution clamps the count before pricing");
     }
 
@@ -104,17 +105,21 @@ class ArcanaConfigTest {
                 ModuleKind.AMPLIFICATION,
                 ModuleKind.FOCUS,
                 ModuleKind.COOLDOWN_ACCELERATION,
-                ModuleKind.CASTING_STABILIZATION)));
+                ModuleKind.CASTING_STABILIZATION,
+                ModuleKind.CAST_TIME)));
 
         assertEquals(0, rates.maxManaForUnits(4), "no MAX_MANA override from a disabled module");
         assertEquals(0.0D, rates.amplificationPercent(4));
         assertEquals(0.0D, rates.focusPercent(4));
         assertEquals(0.0D, rates.cooldownReductionPercent(5));
         assertEquals(0.0D, rates.castTimeReductionPercent(4));
+        assertEquals(0.0D, rates.castTimePercent(4));
+        assertFalse(rates.grantsConcentration(1), "disabled module must not grant concentration");
         assertFalse(rates.removesCastingMovementPenalty(1), "even one unit must not remove the penalty");
         // The arithmetic calculator intentionally has no disabled-module state. Runtime must gate
         // conversion on this zero execution cap before it calls the calculator.
         assertEquals(0, rates.maxUnits(ModuleKind.MANA_CONVERSION));
+        assertEquals(0, rates.maxUnits(ModuleKind.CAST_TIME));
     }
 
     @Test
@@ -163,13 +168,16 @@ class ArcanaConfigTest {
                 999.0D, shipped.amplificationFePerCast(), 999.0D, shipped.focusFePerCast(),
                 999.0D, shipped.cooldownFePerTickPerSlot(), shipped.cooldownSavedTimeFePerTick(),
                 999.0D, shipped.castingFePerTick(), shipped.castingSavedTimeFePerTick(),
-                List.of(99, 99, 99, 99, 99), Set.of());
+                999.0D, shipped.castTimeFePerTick(), shipped.castTimeSavedTimeFePerTick(),
+                List.of(99, 99, 99, 99, 99, 99), Set.of());
         ArcanaRates rates = balanceOf(hostile);
         assertEquals(200.0D, rates.amplificationPercent(4));
         assertEquals(200.0D, rates.focusPercent(4));
         assertEquals(500.0D, rates.cooldownReductionPercent(5));
         assertEquals(100.0D, rates.castTimeReductionPercent(4));
+        assertEquals(100.0D, rates.castTimePercent(4));
         assertEquals(4, rates.maxUnits(ModuleKind.CASTING_STABILIZATION));
+        assertEquals(4, rates.maxUnits(ModuleKind.CAST_TIME));
     }
 
     @Test
@@ -183,7 +191,8 @@ class ArcanaConfigTest {
                 -50.0D, -500,
                 -100.0D, -20, -40.0D,
                 -50.0D, -20, -40.0D,
-                List.of(-4, -4, -4, -5, -4),
+                -25.0D, -20, -40.0D,
+                List.of(-4, -4, -4, -5, -4, -4),
                 Set.of())));
 
         assertEquals(ModuleKind.values().length, negative.maxUnits().size());
@@ -196,10 +205,12 @@ class ArcanaConfigTest {
         assertEquals(0.0D, negative.focusPercent(4));
         assertEquals(0.0D, negative.cooldownReductionPercent(5));
         assertEquals(0.0D, negative.castTimeReductionPercent(4));
+        assertEquals(0.0D, negative.castTimePercent(4));
         assertEquals(0.0D, negative.amplificationCastCost());
         assertEquals(0.0D, negative.focusCastCost());
         assertEquals(0.0D, negative.cooldownFePerTick(3, 1.0D));
         assertEquals(0.0D, negative.castingFePerTick(1.0D));
+        assertEquals(0.0D, negative.castTimeFePerTick(1.0D));
 
         ArcanaRates nan = ArcanaTuning.balance(Optional.of(new ArcanaTuning.Values(
                 Double.NaN,
@@ -209,7 +220,8 @@ class ArcanaConfigTest {
                 50.0D, 500,
                 100.0D, 20, 40.0D,
                 50.0D, 20, 40.0D,
-                List.of(4, 4, 4, 5, 4),
+                25.0D, 20, 40.0D,
+                List.of(4, 4, 4, 5, 4, 4),
                 Set.of())));
 
         assertEquals(0, nan.manaRestorableForFe(1_000.0D, 100));
@@ -221,7 +233,7 @@ class ArcanaConfigTest {
     @DisplayName("the disabled set and the tables are copied, so later mutation cannot move a snapshot")
     void inputsAreCopied() {
         EnumSet<ModuleKind> liveDisabled = EnumSet.noneOf(ModuleKind.class);
-        List<Integer> liveCaps = new ArrayList<>(List.of(1, 2, 3, 4, 5));
+        List<Integer> liveCaps = new ArrayList<>(List.of(1, 2, 3, 4, 5, 6));
         ArcanaTuning.Values values = tuned(null, null, liveCaps, liveDisabled);
 
         assertEquals(1, values.maxUnits().get(0));
@@ -267,6 +279,9 @@ class ArcanaConfigTest {
                 shipped.castingPercentPerUnit(),
                 shipped.castingFePerTick(),
                 shipped.castingSavedTimeFePerTick(),
+                shipped.castTimePercentPerUnit(),
+                shipped.castTimeFePerTick(),
+                shipped.castTimeSavedTimeFePerTick(),
                 maxUnits == null ? shipped.maxUnits() : maxUnits,
                 disabledModules == null ? shipped.disabledModules() : disabledModules);
     }

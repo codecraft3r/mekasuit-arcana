@@ -68,6 +68,8 @@ public final class RuntimeTimingVerification {
                 checked("canceled_mana_refund", () -> canceledManaRefund(server)),
                 checked("casting_native_long_spell", () -> castingNativeLongSpell(server)),
                 checked("casting_stabilization_cooldown", () -> castingStabilizationCooldown(server)),
+                checked("cast_time_instant_reduction", () -> castTimeInstantReduction(server)),
+                checked("cast_time_concentration_protection", () -> castTimeConcentrationProtection(server)),
                 checked("movement_binary", () -> movementBinary(server)),
                 checked("empty_dry", () -> emptyDry(server))
         };
@@ -230,6 +232,44 @@ public final class RuntimeTimingVerification {
         boolean passed = event.isCanceled() && event.getEffectiveCooldown() == 0 && afterEnergy < beforeEnergy;
         return new Check("", passed, "baseline=" + baseline + ", effective=" + event.getEffectiveCooldown()
                 + ", canceled=" + event.isCanceled() + ", FE=" + beforeEnergy + "->" + afterEnergy);
+    }
+
+    private static Check castTimeInstantReduction(MinecraftServer server) {
+        FakePlayer player = player(server, "cast_time_instant");
+        ItemStack body = body(player, 4_000_000L, install(ArcanaModules.CAST_TIME, 4));
+        player.setItemSlot(EquipmentSlot.CHEST, body);
+        ArcanaRuntime.refresh(player);
+        AbstractSpell spell = findLongSpell();
+        if (spell == null) return new Check("", false, "no registered LONG spell found");
+        int level = Math.max(spell.getMinLevel(), 1);
+        MagicData magic = magic(player);
+        magic.initiateCast(spell, level, 100, CastSource.SPELLBOOK, "mainhand");
+        int before = magic.getCastDurationRemaining();
+        long beforeEnergy = ArcanaEnergy.stored(body);
+        ArcanaRuntime.tick(player);
+        int after = magic.getCastDurationRemaining();
+        long afterEnergy = ArcanaEnergy.stored(body);
+        boolean passed = before == 100 && after == 0 && afterEnergy < beforeEnergy;
+        return new Check("", passed, "duration=" + before + "->" + after + ", FE=" + beforeEnergy + "->" + afterEnergy);
+    }
+
+    private static Check castTimeConcentrationProtection(MinecraftServer server) {
+        FakePlayer player = player(server, "cast_time_concentration");
+        ItemStack body = body(player, 4_000_000L, install(ArcanaModules.CAST_TIME, 1));
+        player.setItemSlot(EquipmentSlot.CHEST, body);
+        ArcanaRuntime.refresh(player);
+        AbstractSpell spell = findLongSpell();
+        if (spell == null) return new Check("", false, "no registered LONG spell found");
+        int level = Math.max(spell.getMinLevel(), 1);
+        MagicData magic = magic(player);
+        magic.initiateCast(spell, level, 100, CastSource.SPELLBOOK, "mainhand");
+        net.minecraft.world.damagesource.DamageSource source = server.overworld().damageSources().generic();
+        net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent event =
+                new net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent(player,
+                        new net.neoforged.neoforge.common.damagesource.DamageContainer(source, 5.0F));
+        NeoForge.EVENT_BUS.post(event);
+        boolean marked = magic.popMarkedPoison();
+        return new Check("", marked && magic.isCasting(), "markedPoison=" + marked + ", casting=" + magic.isCasting());
     }
 
     private static Check movementBinary(MinecraftServer server) {

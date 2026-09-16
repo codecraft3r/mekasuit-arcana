@@ -28,6 +28,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
@@ -48,11 +49,27 @@ public final class ArcanaRuntime {
         bus.addListener(EventPriority.LOWEST, ArcanaRuntime::onPreCast);
         bus.addListener(EventPriority.LOWEST, ArcanaRuntime::onCast);
         bus.addListener(EventPriority.LOWEST, ArcanaRuntime::onCooldown);
+        bus.addListener(EventPriority.HIGH, ArcanaRuntime::onDamage);
         bus.addListener(ArcanaRuntime::onLogout);
         bus.addListener(ArcanaRuntime::onClone);
         bus.addListener(ArcanaRuntime::onDimension);
         bus.addListener(ArcanaRuntime::onDeath);
         bus.addListener(ArcanaRuntime::onServerStopped);
+    }
+
+    public static void onDamage(LivingIncomingDamageEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        MagicData magic = MagicData.getPlayerMagicData(player);
+        if (!magic.isCasting()) return;
+        ArcanaRates rates = ArcanaConfig.rates();
+        for (var equipped : ArcanaCarrier.readEquipped(player)) {
+            ItemStack stack = equipped.stack();
+            ArcanaCarrier c = powered(equipped.carrier(), stack, rates);
+            if (rates.grantsConcentration(c.castTimeUnits())) {
+                magic.markPoisoned();
+                return;
+            }
+        }
     }
 
     private static void onTick(PlayerTickEvent.Post event) {
@@ -96,16 +113,22 @@ public final class ArcanaRuntime {
             ArcanaCarrier carrier = powered(equippedCarrier.carrier(), stack, rates);
             boolean cooldownPaid = true;
             boolean castingPaid = true;
+            boolean castTimePaid = true;
             if (carrier.cooldownUnits() > 0 && carrier.cooldownStep() > 0) {
                 cooldownPaid = accelerateCooldowns(player, stack, carrier, rates, state, baseCooldown, cooldownDelta);
             }
             if (carrier.castingUnits() > 0 && magic.isCasting()) {
                 castingPaid = accelerateCasting(player, stack, carrier, rates, state, baseCasting, castingDelta);
             }
+            if (carrier.castTimeUnits() > 0 && magic.isCasting()) {
+                castTimePaid = accelerateCastTime(player, stack, carrier, rates, state);
+            }
             effects.add(filtered(carrier, carrier.amplificationUnits(), carrier.focusUnits(),
                     cooldownPaid ? carrier.cooldownUnits() : 0,
                     castingPaid ? carrier.castingUnits() : 0,
-                    magic.getCastType() == CastType.CONTINUOUS ? 0 : carrier.castingStep()));
+                    castTimePaid ? carrier.castTimeUnits() : 0,
+                    magic.getCastType() == CastType.CONTINUOUS ? 0 : carrier.castingStep(),
+                    carrier.castTimeStep()));
         }
         SpellAttributeService.sync(player, effects, rates);
         // Mana is the lowest priority load: active casting/cooldowns have already paid.
@@ -143,7 +166,7 @@ public final class ArcanaRuntime {
             // Iron's snapshots duration immediately after this event. Start at the native
             // duration; the tick driver purchases acceleration only while energy is paid.
             effects.add(filtered(c, c.amplificationUnits(), c.focusUnits(), c.cooldownUnits(),
-                    c.castingUnits(), 0));
+                    c.castingUnits(), c.castTimeUnits(), 0, c.castTimeStep()));
         }
         SpellAttributeService.sync(player, effects, rates);
         State state = STATES.computeIfAbsent(player.getUUID(), ignored -> new State());
@@ -178,10 +201,12 @@ public final class ArcanaRuntime {
             // transaction used the carrier's final FE. The next tick reconciles them.
             ArcanaCarrier remaining = powered(c, stack, rates);
             effects.add(new ArcanaCarrier(remaining.manaUnits(), amplification, focus,
-                    remaining.cooldownUnits(), remaining.castingUnits(), c.manaSpeedPreset(), c.focusSchool(),
+                    remaining.cooldownUnits(), remaining.castingUnits(), remaining.castTimeUnits(),
+                    c.manaSpeedPreset(), c.focusSchool(),
                     c.amplificationStep(), c.focusStep(), c.cooldownStep(),
                     MagicData.getPlayerMagicData(player).getCastType() == CastType.CONTINUOUS
-                            ? 0 : c.castingStep()));
+                            ? 0 : c.castingStep(),
+                    c.castTimeStep()));
         }
         SpellAttributeService.sync(player, effects, rates);
     }
@@ -283,6 +308,60 @@ public final class ArcanaRuntime {
         return true;
     }
 
+    private static boolean accelerateCastTime(ServerPlayer player, ItemStack stack, ArcanaCarrier c,
+            ArcanaRates rates, State state) {
+        MagicData magic = MagicData.getPlayerMagicData(player);
+        if (magic.getCastType() != CastType.LONG || !magic.isCasting()) {
+            return true;
+        }
+        int remaining = magic.getCastDurationRemaining();
+        if (remaining <= 0) {
+            return true;
+        }
+        double step = c.castTimeStep();
+        double fraction = Math.min(1.0D, c.castTimeUnits() * (rates.castTimePercentPerUnit() / 100.0D) * step);
+        if (fraction <= 0.0D) {
+            if (rates.grantsConcentration(c.castTimeUnits())) {
+                return pay(stack, rates.castTimeFePerTick());
+            }
+            return true;
+        }
+
+        if (fraction >= 1.0D) {
+            int ticksSaved = remaining;
+            double cost = rates.castTimeFePerTick() + rates.castTimeSavedTimeFePerTick() * ticksSaved;
+            if (!pay(stack, cost)) {
+                return false;
+            }
+            for (int i = 0; i < remaining; i++) {
+                magic.handleCastDuration();
+            }
+            PacketDistributor.sendToPlayer(player, new UpdateCastingStatePacket(
+                    magic.getCastingSpellId(), magic.getCastingSpellLevel(), magic.getCastDurationRemaining(),
+                    magic.getCastSource(), magic.getCastingEquipmentSlot()));
+            return true;
+        }
+
+        double extraPerTick = fraction / (1.0D - fraction);
+        double progress = state.castCarry + extraPerTick;
+        int ticksToAdvance = (int) Math.min(Math.max(0, remaining - 1), Math.floor(progress));
+        double cost = rates.castTimeFePerTick() + rates.castTimeSavedTimeFePerTick() * ticksToAdvance;
+        if (!pay(stack, cost)) {
+            state.castCarry = 0;
+            return false;
+        }
+        state.castCarry = Math.max(0, progress - Math.floor(progress));
+        for (int i = 0; i < ticksToAdvance; i++) {
+            magic.handleCastDuration();
+        }
+        if (ticksToAdvance > 0) {
+            PacketDistributor.sendToPlayer(player, new UpdateCastingStatePacket(
+                    magic.getCastingSpellId(), magic.getCastingSpellLevel(), magic.getCastDurationRemaining(),
+                    magic.getCastSource(), magic.getCastingEquipmentSlot()));
+        }
+        return true;
+    }
+
     private static void restoreMana(ServerPlayer player, ItemStack stack, ArcanaCarrier carrier, ArcanaRates rates) {
         if (carrier.manaUnits() <= 0 || ArcanaEnergy.stored(stack) <= 0) return;
         var state = ManaBridge.read(player);
@@ -312,14 +391,15 @@ public final class ArcanaRuntime {
         int casting = ArcanaEnergy.canPay(stack, cost(rates.castingFePerTick())) ? c.castingUnits() : 0;
         int cooldown = c.cooldownStep() > 0 && ArcanaEnergy.canPay(stack,
                 cost(rates.cooldownFePerTickPerSlot() * c.cooldownStep())) ? c.cooldownUnits() : 0;
-        return filtered(c, amplification, focus, cooldown, casting, c.castingStep());
+        int castTime = ArcanaEnergy.canPay(stack, cost(rates.castTimeFePerTick())) ? c.castTimeUnits() : 0;
+        return filtered(c, amplification, focus, cooldown, casting, castTime, c.castingStep(), c.castTimeStep());
     }
 
     private static ArcanaCarrier filtered(ArcanaCarrier c, int amplification, int focus, int cooldown,
-            int casting, double castingStep) {
-        return new ArcanaCarrier(c.manaUnits(), amplification, focus, cooldown, casting,
+            int casting, int castTime, double castingStep, double castTimeStep) {
+        return new ArcanaCarrier(c.manaUnits(), amplification, focus, cooldown, casting, castTime,
                 c.manaSpeedPreset(), c.focusSchool(), c.amplificationStep(), c.focusStep(),
-                c.cooldownStep(), castingStep);
+                c.cooldownStep(), castingStep, castTimeStep);
     }
 
     private static double extraTicks(double baselineRating, double bonus) {

@@ -56,7 +56,8 @@ class ArcanaRatesTest {
         ArcanaRates broken = new ArcanaRates(
                 List.of(0, 1_000, 4_000, 7_000, 10_000), 0.0D, List.of(100, 400, 1_000, 2_500),
                 50.0D, 500, 50.0D, 500, 100.0D, 20, 40.0D, 25.0D, 20, 40.0D,
-                List.of(4, 4, 4, 5, 4));
+                25.0D, 20, 40.0D,
+                List.of(4, 4, 4, 5, 4, 4));
         assertEquals(0, broken.manaRestorableForFe(1_000.0D, 100));
     }
 
@@ -82,6 +83,8 @@ class ArcanaRatesTest {
     void castingCostTracksSavedTime() {
         assertEquals(20.0D, RATES.castingFePerTick(0.0D));
         assertEquals(60.0D, RATES.castingFePerTick(1.0D), "20 fixed + 40 saved");
+        assertEquals(20.0D, RATES.castTimeFePerTick(0.0D));
+        assertEquals(60.0D, RATES.castTimeFePerTick(1.0D), "20 fixed + 40 saved");
     }
 
     @Test
@@ -107,12 +110,33 @@ class ArcanaRatesTest {
     void malformedTablesAreRejected() {
         assertThrows(IllegalArgumentException.class, () -> new ArcanaRates(
                 List.of(0, 1_000), 10.0D, List.of(100, 400, 1_000, 2_500),
-                50.0D, 500, 50.0D, 500, 100.0D, 20, 40.0D, 50.0D, 20, 40.0D,
-                List.of(4, 4, 4, 5, 4)));
+                50.0D, 500, 50.0D, 500, 100.0D, 20, 40.0D, 25.0D, 20, 40.0D,
+                25.0D, 20, 40.0D,
+                List.of(4, 4, 4, 5, 4, 4)));
         assertThrows(IllegalArgumentException.class, () -> new ArcanaRates(
                 List.of(0, 1_000, 4_000, 7_000, 10_000), 10.0D, List.of(100),
-                50.0D, 500, 50.0D, 500, 100.0D, 20, 40.0D, 50.0D, 20, 40.0D,
-                List.of(4, 4, 4, 5, 4)));
+                50.0D, 500, 50.0D, 500, 100.0D, 20, 40.0D, 25.0D, 20, 40.0D,
+                25.0D, 20, 40.0D,
+                List.of(4, 4, 4, 5, 4, 4)));
+    }
+
+    @Test
+    @DisplayName("Cast Time Unit reduces cast time linearly in 25% steps to none at 4 units")
+    void castTimeReductionSteps() {
+        assertEquals(1.0D, RATES.castTimeMultiplier(0), "0 units = 0% reduction (1.0 multiplier)");
+        assertEquals(0.75D, RATES.castTimeMultiplier(1), 1.0E-9D, "1 unit = 25% reduction (0.75 multiplier)");
+        assertEquals(0.50D, RATES.castTimeMultiplier(2), 1.0E-9D, "2 units = 50% reduction (0.50 multiplier)");
+        assertEquals(0.25D, RATES.castTimeMultiplier(3), 1.0E-9D, "3 units = 75% reduction (0.25 multiplier)");
+        assertEquals(0.0D, RATES.castTimeMultiplier(4), 1.0E-9D, "4 units = 100% reduction / instant (0.0 multiplier)");
+        assertEquals(0.0D, RATES.castTimeMultiplier(99), 1.0E-9D, "clamped at cap");
+    }
+
+    @Test
+    @DisplayName("Cast Time Unit grants concentration for 1 or more units")
+    void castTimeGrantsConcentration() {
+        assertFalse(RATES.grantsConcentration(0));
+        assertTrue(RATES.grantsConcentration(1));
+        assertTrue(RATES.grantsConcentration(4));
     }
     @Test
     @DisplayName("the percent knobs convert to Iron's 1.0-based rating deltas exactly once")

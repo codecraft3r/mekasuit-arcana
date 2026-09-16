@@ -4,13 +4,13 @@
 
 [![CI](https://github.com/H-H-E/mekasuit-arcana/actions/workflows/ci.yml/badge.svg)](https://github.com/H-H-E/mekasuit-arcana/actions/workflows/ci.yml)
 
-**Early preview.** 34 unit tests and 14 isolated server assertions have passed.
+**Early preview.** 36 unit tests and 16 isolated server assertions have passed.
 Connected-client GUI and full-modpack playtesting remain unverified.
 
 Minecraft 1.21.1 / NeoForge 21.1.248 integration for Mekanism 10.7.19.85 and
 Iron's Spells 'n Spellbooks 3.16.3. Java 21 required.
 
-Five Mekanism modules add powered magic support to MekaSuit Bodyarmor.
+Six Mekanism modules add powered magic support to MekaSuit Bodyarmor.
 Amplification and Focus Units also work on a held Meka-Tool using staff-style
 attribute bonuses. Use your existing spellbook and Iron's normal casting controls.
 
@@ -21,11 +21,15 @@ attribute bonuses. Use your existing spellbook and Iron's normal casting control
 | Focus | 4 | +200% spell-power rating in one selected school |
 | Cooldown Acceleration | 5 | +500% cooldown-reduction rating |
 | Casting Stabilization | 4 | 25% spell cooldown reduction per unit (100% / no cooldown at 4 units); full casting movement at one unit |
+| Cast Time | 4 | 25% cast time reduction per unit (100% / instant cast at 4 units); uninterruptible casting (concentration) at 1+ units |
 
 Cooldown Acceleration uses Iron's nonlinear reduction formula (+500% cooldown rating,
 achieving ~20x faster cooldown progression while active). Casting Stabilization provides
 direct linear spell cooldown reduction (25% per installed unit, reaching complete cooldown
-elimination at 4 units) along with unhindered casting movement at 1+ units.
+elimination at 4 units) along with unhindered casting movement at 1+ units. Cast Time Unit
+linearly reduces spell cast duration (25% per installed unit, reaching instant cast at 4 units)
+and grants uninterruptible casting concentration (identical to the Amulet of Concentration)
+when 1 or more units are installed and powered.
 
 ## Using the modules
 
@@ -43,8 +47,9 @@ spells emit repeated cast events, so their pulses are billed separately.
 Cooldowns consume a fixed load for each active native cooldown entry plus FE for
 extra progress. Casting Stabilization drains energy proportional to cooldown time saved
 when spells are cast, plus a fixed FE load while channeling to maintain movement speed.
-Lower output reduces cooldown reduction and its associated energy cost. Stabilization's
-movement benefit remains binary and retains its fixed load even at zero output.
+Cast Time drains a fixed FE load while casting plus energy proportional to cast duration saved.
+Lower output reduces reduction percentages and their associated energy costs. Stabilization's
+movement benefit and Cast Time's concentration benefit remain active at 1+ units even at zero output step.
 
 Acceleration is purchased as the native timers advance, so running out of power
 stops further acceleration. Casting itself continues. Continuous spells retain

@@ -87,6 +87,9 @@ public record ArcanaRates(
         double castingPercentPerUnit,
         int castingFePerTick,
         double castingSavedTimeFePerTick,
+        double castTimePercentPerUnit,
+        int castTimeFePerTick,
+        double castTimeSavedTimeFePerTick,
         List<Integer> maxUnits) {
 
     /** Conversion-speed presets available in the module tweaker. */
@@ -98,7 +101,7 @@ public record ArcanaRates(
     }
 
     /**
-     * The five in-scope modules, in a stable order that matches {@code maxUnits}. Keeping this
+     * The six in-scope modules, in a stable order that matches {@code maxUnits}. Keeping this
      * enum as the address of a cap stops callers from passing a raw magic index.
      */
     public enum ModuleKind {
@@ -106,7 +109,8 @@ public record ArcanaRates(
         AMPLIFICATION,
         FOCUS,
         COOLDOWN_ACCELERATION,
-        CASTING_STABILIZATION
+        CASTING_STABILIZATION,
+        CAST_TIME
     }
 
     public ArcanaRates {
@@ -161,7 +165,10 @@ public record ArcanaRates(
                 25.0D,
                 20,
                 40.0D,
-                List.of(4, 4, 4, 5, 4));
+                25.0D,
+                20,
+                40.0D,
+                List.of(4, 4, 4, 5, 4, 4));
     }
 
     /** Hard cap on how many units of this kind one carrier may hold. */
@@ -239,6 +246,27 @@ public record ArcanaRates(
     /** Compatibility alias for cast time reduction queries. */
     public double castTimeReductionPercent(int units) {
         return castingCooldownReductionPercent(units);
+    }
+
+    /** Linear cast-time reduction percent for a unit count, clamped to the cap. */
+    public double castTimePercent(int units) {
+        return clampUnits(ModuleKind.CAST_TIME, units)
+                * Math.max(0.0D, castTimePercentPerUnit);
+    }
+
+    /**
+     * Cast time multiplier: linear reduction of 25% per unit, reaching 0.0 (instant cast) at 4 units.
+     */
+    public double castTimeMultiplier(int units) {
+        double percent = castTimePercent(units);
+        return Math.max(0.0D, 1.0D - (percent / 100.0D));
+    }
+
+    /**
+     * Whether 1 or more units grant concentration (uninterruptible casting from damage).
+     */
+    public boolean grantsConcentration(int units) {
+        return clampUnits(ModuleKind.CAST_TIME, units) >= 1;
     }
 
     /**
@@ -339,6 +367,16 @@ public record ArcanaRates(
     public double castingFePerTick(double castTimeReductionFraction) {
         double fixed = Math.max(0, castingFePerTick);
         double saved = Math.max(0.0D, castingSavedTimeFePerTick)
+                * clampFraction(castTimeReductionFraction);
+        return fixed + saved;
+    }
+
+    /**
+     * FE owed for this tick of cast time acceleration, including the term scaled by cast time saved.
+     */
+    public double castTimeFePerTick(double castTimeReductionFraction) {
+        double fixed = Math.max(0, castTimeFePerTick);
+        double saved = Math.max(0.0D, castTimeSavedTimeFePerTick)
                 * clampFraction(castTimeReductionFraction);
         return fixed + saved;
     }
