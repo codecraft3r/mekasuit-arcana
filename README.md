@@ -1,5 +1,7 @@
 # MekaSuit Arcana
 
+<img src="src/main/resources/icon.png" alt="MekaSuit Arcana Icon" width="96" align="right" />
+
 [![CI](https://github.com/H-H-E/mekasuit-arcana/actions/workflows/ci.yml/badge.svg)](https://github.com/H-H-E/mekasuit-arcana/actions/workflows/ci.yml)
 
 **Early preview.** 34 unit tests and 14 isolated server assertions have passed.
@@ -18,11 +20,12 @@ attribute bonuses. Use your existing spellbook and Iron's normal casting control
 | Amplification | 4 | +200% global spell-power rating |
 | Focus | 4 | +200% spell-power rating in one selected school |
 | Cooldown Acceleration | 5 | +500% cooldown-reduction rating |
-| Casting Stabilization | 4 | +200% cast-time-reduction rating; full casting movement at one unit |
+| Casting Stabilization | 4 | 25% spell cooldown reduction per unit (100% / no cooldown at 4 units); full casting movement at one unit |
 
-Iron's applies its own nonlinear reduction formula: a +500% cooldown rating is
-not a negative cooldown. With otherwise neutral attributes, maximum cooldown
-acceleration is about 20x and maximum long-cast acceleration about 8x.
+Cooldown Acceleration uses Iron's nonlinear reduction formula (+500% cooldown rating,
+achieving ~20x faster cooldown progression while active). Casting Stabilization provides
+direct linear spell cooldown reduction (25% per installed unit, reaching complete cooldown
+elimination at 4 units) along with unhindered casting movement at 1+ units.
 
 ## Using the modules
 
@@ -38,9 +41,10 @@ Every restored mana point costs FE. Amplification charges once per Iron's cast
 event; Focus charges only on events from its selected school. Iron's channeled
 spells emit repeated cast events, so their pulses are billed separately.
 Cooldowns consume a fixed load for each active native cooldown entry plus FE for
-extra progress. Casting consumes a fixed load plus FE for extra long-cast progress.
-Lower output reduces acceleration and its associated energy cost. Stabilization's
-movement benefit remains binary and retains its fixed load even at zero time output.
+extra progress. Casting Stabilization drains energy proportional to cooldown time saved
+when spells are cast, plus a fixed FE load while channeling to maintain movement speed.
+Lower output reduces cooldown reduction and its associated energy cost. Stabilization's
+movement benefit remains binary and retains its fixed load even at zero output.
 
 Acceleration is purchased as the native timers advance, so running out of power
 stops further acceleration. Casting itself continues. Continuous spells retain
