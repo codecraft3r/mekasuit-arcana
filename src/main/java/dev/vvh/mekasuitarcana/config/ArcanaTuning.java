@@ -41,18 +41,15 @@ public final class ArcanaTuning {
 
     /** Hard design caps; config may lower these, but never widen them. */
     public static int hardCap(ModuleKind kind) {
-        return switch (Objects.requireNonNull(kind, "kind")) {
-            case MANA_CONVERSION, AMPLIFICATION, FOCUS, CASTING_STABILIZATION, CAST_TIME -> 4;
-            case COOLDOWN_ACCELERATION -> 5;
-        };
+        Objects.requireNonNull(kind, "kind");
+        return 4;
     }
 
     /** Maximum per-unit percentage which can still respect the design cap. */
     public static double hardPercentPerUnit(ModuleKind kind) {
         return switch (Objects.requireNonNull(kind, "kind")) {
-            case AMPLIFICATION, FOCUS -> 50.0D;
-            case CASTING_STABILIZATION, CAST_TIME -> 25.0D;
-            case COOLDOWN_ACCELERATION -> 100.0D;
+            case AMPLIFICATION, FOCUS -> 100.0D;
+            case COOLDOWN_REDUCTION, CASTING_STABILIZATION -> 25.0D;
             case MANA_CONVERSION -> 0.0D;
         };
     }
@@ -80,9 +77,6 @@ public final class ArcanaTuning {
             double castingPercentPerUnit,
             int castingFePerTick,
             double castingSavedTimeFePerTick,
-            double castTimePercentPerUnit,
-            int castTimeFePerTick,
-            double castTimeSavedTimeFePerTick,
             List<Integer> maxUnits,
             Set<ModuleKind> disabledModules) {
 
@@ -121,9 +115,6 @@ public final class ArcanaTuning {
                     rates.castingPercentPerUnit(),
                     rates.castingFePerTick(),
                     rates.castingSavedTimeFePerTick(),
-                    rates.castTimePercentPerUnit(),
-                    rates.castTimeFePerTick(),
-                    rates.castTimeSavedTimeFePerTick(),
                     rates.maxUnits(),
                     Set.of());
         }
@@ -190,11 +181,9 @@ public final class ArcanaTuning {
                 ModuleKind.AMPLIFICATION);
         double focusPercent = boundedPercent(values.focusPercentPerUnit(), ModuleKind.FOCUS);
         double cooldownPercent = boundedPercent(values.cooldownPercentPerUnit(),
-                ModuleKind.COOLDOWN_ACCELERATION);
+                ModuleKind.COOLDOWN_REDUCTION);
         double castingPercent = boundedPercent(values.castingPercentPerUnit(),
                 ModuleKind.CASTING_STABILIZATION);
-        double castTimePercent = boundedPercent(values.castTimePercentPerUnit(),
-                ModuleKind.CAST_TIME);
 
         return new ArcanaRates(
                 maxManaByUnits,
@@ -210,9 +199,6 @@ public final class ArcanaTuning {
                 castingPercent,
                 nonNegative(values.castingFePerTick()),
                 nonNegative(values.castingSavedTimeFePerTick()),
-                castTimePercent,
-                nonNegative(values.castTimeFePerTick()),
-                nonNegative(values.castTimeSavedTimeFePerTick()),
                 maxUnits);
     }
 

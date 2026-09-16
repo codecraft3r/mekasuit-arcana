@@ -27,8 +27,8 @@ class ArcanaRatesTest {
     @DisplayName("unit counts clamp to the cap instead of extrapolating the curve")
     void unitCountsClamp() {
         assertEquals(10_000, RATES.maxManaForUnits(99));
-        assertEquals(200.0D, RATES.amplificationPercent(99), "4 units x 50%");
-        assertEquals(500.0D, RATES.cooldownReductionPercent(99), "5 units x 100%");
+        assertEquals(400.0D, RATES.amplificationPercent(99), "4 units x 100%");
+        assertEquals(100.0D, RATES.cooldownReductionPercent(99), "4 units x 25%");
         assertEquals(0.0D, RATES.amplificationPercent(-3));
     }
 
@@ -55,9 +55,8 @@ class ArcanaRatesTest {
     void zeroRateCannotMintMana() {
         ArcanaRates broken = new ArcanaRates(
                 List.of(0, 1_000, 4_000, 7_000, 10_000), 0.0D, List.of(100, 400, 1_000, 2_500),
-                50.0D, 500, 50.0D, 500, 100.0D, 20, 40.0D, 25.0D, 20, 40.0D,
-                25.0D, 20, 40.0D,
-                List.of(4, 4, 4, 5, 4, 4));
+                100.0D, 500, 100.0D, 500, 25.0D, 20, 40.0D, 25.0D, 20, 40.0D,
+                List.of(4, 4, 4, 4, 4));
         assertEquals(0, broken.manaRestorableForFe(1_000.0D, 100));
     }
 
@@ -110,40 +109,39 @@ class ArcanaRatesTest {
     void malformedTablesAreRejected() {
         assertThrows(IllegalArgumentException.class, () -> new ArcanaRates(
                 List.of(0, 1_000), 10.0D, List.of(100, 400, 1_000, 2_500),
-                50.0D, 500, 50.0D, 500, 100.0D, 20, 40.0D, 25.0D, 20, 40.0D,
-                25.0D, 20, 40.0D,
-                List.of(4, 4, 4, 5, 4, 4)));
+                100.0D, 500, 100.0D, 500, 25.0D, 20, 40.0D, 25.0D, 20, 40.0D,
+                List.of(4, 4, 4, 4, 4)));
         assertThrows(IllegalArgumentException.class, () -> new ArcanaRates(
                 List.of(0, 1_000, 4_000, 7_000, 10_000), 10.0D, List.of(100),
-                50.0D, 500, 50.0D, 500, 100.0D, 20, 40.0D, 25.0D, 20, 40.0D,
-                25.0D, 20, 40.0D,
-                List.of(4, 4, 4, 5, 4, 4)));
+                100.0D, 500, 100.0D, 500, 25.0D, 20, 40.0D, 25.0D, 20, 40.0D,
+                List.of(4, 4, 4, 4, 4)));
     }
 
     @Test
-    @DisplayName("Cast Time Unit reduces cast time linearly in 25% steps to none at 4 units")
+    @DisplayName("Casting Stabilization Unit reduces cast time linearly in 25% steps to none at 4 units")
     void castTimeReductionSteps() {
-        assertEquals(1.0D, RATES.castTimeMultiplier(0), "0 units = 0% reduction (1.0 multiplier)");
-        assertEquals(0.75D, RATES.castTimeMultiplier(1), 1.0E-9D, "1 unit = 25% reduction (0.75 multiplier)");
-        assertEquals(0.50D, RATES.castTimeMultiplier(2), 1.0E-9D, "2 units = 50% reduction (0.50 multiplier)");
-        assertEquals(0.25D, RATES.castTimeMultiplier(3), 1.0E-9D, "3 units = 75% reduction (0.25 multiplier)");
-        assertEquals(0.0D, RATES.castTimeMultiplier(4), 1.0E-9D, "4 units = 100% reduction / instant (0.0 multiplier)");
-        assertEquals(0.0D, RATES.castTimeMultiplier(99), 1.0E-9D, "clamped at cap");
+        assertEquals(1.0D, RATES.castingMultiplier(0), "0 units = 0% reduction (1.0 multiplier)");
+        assertEquals(0.75D, RATES.castingMultiplier(1), 1.0E-9D, "1 unit = 25% reduction (0.75 multiplier)");
+        assertEquals(0.50D, RATES.castingMultiplier(2), 1.0E-9D, "2 units = 50% reduction (0.50 multiplier)");
+        assertEquals(0.25D, RATES.castingMultiplier(3), 1.0E-9D, "3 units = 75% reduction (0.25 multiplier)");
+        assertEquals(0.0D, RATES.castingMultiplier(4), 1.0E-9D, "4 units = 100% reduction / instant (0.0 multiplier)");
+        assertEquals(0.0D, RATES.castingMultiplier(99), 1.0E-9D, "clamped at cap");
     }
 
     @Test
-    @DisplayName("Cast Time Unit grants concentration for 1 or more units")
-    void castTimeGrantsConcentration() {
+    @DisplayName("Casting Stabilization Unit grants concentration for 1 or more units")
+    void castingStabilizationGrantsConcentration() {
         assertFalse(RATES.grantsConcentration(0));
         assertTrue(RATES.grantsConcentration(1));
         assertTrue(RATES.grantsConcentration(4));
     }
+
     @Test
     @DisplayName("the percent knobs convert to Iron's 1.0-based rating deltas exactly once")
     void percentConvertsToRatingDelta() {
         assertEquals(0.0D, ArcanaRates.ratingDelta(0.0D));
         assertEquals(2.0D, ArcanaRates.ratingDelta(200.0D), "+200% is a delta of 2.0, not a value of 2.0");
-        assertEquals(5.0D, ArcanaRates.ratingDelta(500.0D));
+        assertEquals(4.0D, ArcanaRates.ratingDelta(400.0D), "+400% is a delta of 4.0");
         assertEquals(0.0D, ArcanaRates.ratingDelta(Double.NaN), "a broken knob must not become free power");
     }
 
@@ -162,21 +160,24 @@ class ArcanaRatesTest {
     @DisplayName("a full stack delivers the advertised maximum, through Iron's own curve")
     void fullStacksDeliverTheDesignMaximum() {
         assertEquals(1.0D, RATES.cooldownReductionMultiplier(0), "no units, no change");
-        assertEquals(1.0D, RATES.castTimeReductionMultiplier(0));
-        assertEquals(0.75D, RATES.castTimeReductionMultiplier(1), 1.0E-9D, "25% reduction at 1 unit");
-        assertEquals(0.50D, RATES.castTimeReductionMultiplier(2), 1.0E-9D, "50% reduction at 2 units");
-        assertEquals(0.25D, RATES.castTimeReductionMultiplier(3), 1.0E-9D, "75% reduction at 3 units");
-        assertEquals(0.0D, RATES.castTimeReductionMultiplier(4), 1.0E-9D, "no cooldown at 4 units");
-        assertEquals(0.05D, RATES.cooldownReductionMultiplier(5), 1.0E-9D,
-                "+500% reaches the soft cap 0.05 multiplier, so cooldowns are 20x shorter");
-        assertEquals(0.0D, RATES.castTimeReductionMultiplier(99), 1.0E-9D, "clamped at the cap");
-        assertEquals(0.05D, RATES.cooldownReductionMultiplier(99), 1.0E-9D, "clamped at the cap");
+        assertEquals(0.75D, RATES.cooldownReductionMultiplier(1), 1.0E-9D, "25% reduction at 1 unit");
+        assertEquals(0.50D, RATES.cooldownReductionMultiplier(2), 1.0E-9D, "50% reduction at 2 units");
+        assertEquals(0.25D, RATES.cooldownReductionMultiplier(3), 1.0E-9D, "75% reduction at 3 units");
+        assertEquals(0.0D, RATES.cooldownReductionMultiplier(4), 1.0E-9D, "no cooldown at 4 units");
+        assertEquals(0.0D, RATES.cooldownReductionMultiplier(99), 1.0E-9D, "clamped at the cap");
+
+        assertEquals(1.0D, RATES.castingMultiplier(0));
+        assertEquals(0.75D, RATES.castingMultiplier(1), 1.0E-9D, "25% reduction at 1 unit");
+        assertEquals(0.50D, RATES.castingMultiplier(2), 1.0E-9D, "50% reduction at 2 units");
+        assertEquals(0.25D, RATES.castingMultiplier(3), 1.0E-9D, "75% reduction at 3 units");
+        assertEquals(0.0D, RATES.castingMultiplier(4), 1.0E-9D, "instant cast at 4 units");
+        assertEquals(0.0D, RATES.castingMultiplier(99), 1.0E-9D, "clamped at the cap");
     }
 
     @Test
     @DisplayName("FE time-saved terms are priced against the honoured reduction, not the raw rating")
     void savedTimeIsPricedAgainstTheRealReduction() {
-        assertEquals(0.95D, ArcanaRates.durationSavedFraction(RATES.cooldownReductionMultiplier(5)), 1.0E-9D);
+        assertEquals(1.0D, ArcanaRates.durationSavedFraction(RATES.cooldownReductionMultiplier(4)), 1.0E-9D);
         assertEquals(0.0D, ArcanaRates.durationSavedFraction(1.0D), "no reduction, nothing to pay for");
         assertEquals(0.0D, ArcanaRates.durationSavedFraction(1.5D), "an over-unity multiplier saves nothing");
     }

@@ -12,7 +12,6 @@ public final class ArcanaConfigKeys {
     public static final ResourceLocation FOCUS_STEP = key("focus_step");
     public static final ResourceLocation COOLDOWN_STEP = key("cooldown_step");
     public static final ResourceLocation CASTING_STEP = key("casting_step");
-    public static final ResourceLocation CAST_TIME_STEP = key("cast_time_step");
 
     private ArcanaConfigKeys() {
     }

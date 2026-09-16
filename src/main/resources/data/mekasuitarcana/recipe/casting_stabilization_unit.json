@@ -1,15 +1,16 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "CEC",
+    "CAC",
     "QBQ",
-    "CEC"
+    "CTC"
   ],
   "key": {
+    "A": { "item": "irons_spellbooks:concentration_amulet" },
     "B": { "item": "mekanism:module_base" },
     "C": { "item": "mekanism:elite_control_circuit" },
-    "E": { "item": "minecraft:ender_pearl" },
-    "Q": { "item": "minecraft:quartz" }
+    "Q": { "item": "minecraft:quartz" },
+    "T": { "item": "minecraft:clock" }
   },
   "result": {
     "id": "mekasuitarcana:casting_stabilization_unit",

@@ -2,9 +2,8 @@ package dev.vvh.mekasuitarcana.registry;
 
 import dev.vvh.mekasuitarcana.MekaSuitArcana;
 import dev.vvh.mekasuitarcana.module.AmplificationUnit;
-import dev.vvh.mekasuitarcana.module.CastTimeUnit;
 import dev.vvh.mekasuitarcana.module.CastingStabilizationUnit;
-import dev.vvh.mekasuitarcana.module.CooldownAccelerationUnit;
+import dev.vvh.mekasuitarcana.module.CooldownReductionUnit;
 import dev.vvh.mekasuitarcana.module.FocusUnit;
 import dev.vvh.mekasuitarcana.module.ManaConversionUnit;
 import dev.vvh.mekasuitarcana.registry.ArcanaConfigKeys;
@@ -43,12 +42,10 @@ public final class ArcanaModules {
             "amplification_unit", () -> createModuleItem(() -> widen(amplificationHolder())));
     public static final DeferredHolder<Item, Item> FOCUS_ITEM = ITEMS.register(
             "focus_unit", () -> createModuleItem(() -> widen(focusHolder())));
-    public static final DeferredHolder<Item, Item> COOLDOWN_ACCELERATION_ITEM = ITEMS.register(
-            "cooldown_acceleration_unit", () -> createModuleItem(() -> widen(cooldownAccelerationHolder())));
+    public static final DeferredHolder<Item, Item> COOLDOWN_REDUCTION_ITEM = ITEMS.register(
+            "cooldown_reduction_unit", () -> createModuleItem(() -> widen(cooldownReductionHolder())));
     public static final DeferredHolder<Item, Item> CASTING_STABILIZATION_ITEM = ITEMS.register(
             "casting_stabilization_unit", () -> createModuleItem(() -> widen(castingStabilizationHolder())));
-    public static final DeferredHolder<Item, Item> CAST_TIME_ITEM = ITEMS.register(
-            "cast_time_unit", () -> createModuleItem(() -> widen(castTimeHolder())));
 
     public static final DeferredHolder<ModuleData<?>, ModuleData<ManaConversionUnit>> MANA_CONVERSION =
             MODULE_DATA.register("mana_conversion", () -> new ModuleData<>(
@@ -77,10 +74,10 @@ public final class ArcanaModules {
                                     ModuleEnumConfig.codec(ArcanaStep.CODEC),
                                     ModuleEnumConfig.streamCodec(ArcanaStep.STREAM_CODEC))));
 
-    public static final DeferredHolder<ModuleData<?>, ModuleData<CooldownAccelerationUnit>> COOLDOWN_ACCELERATION =
-            MODULE_DATA.register("cooldown_acceleration", () -> new ModuleData<>(
-                    ModuleDataBuilder.<CooldownAccelerationUnit>custom(module -> new CooldownAccelerationUnit(), COOLDOWN_ACCELERATION_ITEM)
-                            .maxStackSize(5)
+    public static final DeferredHolder<ModuleData<?>, ModuleData<CooldownReductionUnit>> COOLDOWN_REDUCTION =
+            MODULE_DATA.register("cooldown_reduction", () -> new ModuleData<>(
+                    ModuleDataBuilder.<CooldownReductionUnit>custom(module -> new CooldownReductionUnit(), COOLDOWN_REDUCTION_ITEM)
+                            .maxStackSize(4)
                             .addConfig(ModuleEnumConfig.create(ArcanaConfigKeys.COOLDOWN_STEP, ArcanaStep.FULL),
                                     ModuleEnumConfig.codec(ArcanaStep.CODEC),
                                     ModuleEnumConfig.streamCodec(ArcanaStep.STREAM_CODEC))));
@@ -90,14 +87,6 @@ public final class ArcanaModules {
                     ModuleDataBuilder.<CastingStabilizationUnit>custom(module -> new CastingStabilizationUnit(), CASTING_STABILIZATION_ITEM)
                             .maxStackSize(4)
                             .addConfig(ModuleEnumConfig.create(ArcanaConfigKeys.CASTING_STEP, ArcanaStep.FULL),
-                                     ModuleEnumConfig.codec(ArcanaStep.CODEC),
-                                     ModuleEnumConfig.streamCodec(ArcanaStep.STREAM_CODEC))));
-
-    public static final DeferredHolder<ModuleData<?>, ModuleData<CastTimeUnit>> CAST_TIME =
-            MODULE_DATA.register("cast_time", () -> new ModuleData<>(
-                    ModuleDataBuilder.<CastTimeUnit>custom(module -> new CastTimeUnit(), CAST_TIME_ITEM)
-                            .maxStackSize(4)
-                            .addConfig(ModuleEnumConfig.create(ArcanaConfigKeys.CAST_TIME_STEP, ArcanaStep.FULL),
                                     ModuleEnumConfig.codec(ArcanaStep.CODEC),
                                     ModuleEnumConfig.streamCodec(ArcanaStep.STREAM_CODEC))));
 
@@ -118,9 +107,8 @@ public final class ArcanaModules {
         event.accept(new ItemStack(MANA_CONVERSION_ITEM.get()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
         event.accept(new ItemStack(AMPLIFICATION_ITEM.get()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
         event.accept(new ItemStack(FOCUS_ITEM.get()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
-        event.accept(new ItemStack(COOLDOWN_ACCELERATION_ITEM.get()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
+        event.accept(new ItemStack(COOLDOWN_REDUCTION_ITEM.get()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
         event.accept(new ItemStack(CASTING_STABILIZATION_ITEM.get()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
-        event.accept(new ItemStack(CAST_TIME_ITEM.get()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
     }
 
     /** Called from common setup through {@code enqueueWork}, before Mekanism processes IMC. */
@@ -130,9 +118,8 @@ public final class ArcanaModules {
         MekanismIMC.addMekaToolModules(widen(AMPLIFICATION));
         MekanismIMC.addMekaSuitBodyarmorModules(widen(FOCUS));
         MekanismIMC.addMekaToolModules(widen(FOCUS));
-        MekanismIMC.addMekaSuitBodyarmorModules(widen(COOLDOWN_ACCELERATION));
+        MekanismIMC.addMekaSuitBodyarmorModules(widen(COOLDOWN_REDUCTION));
         MekanismIMC.addMekaSuitBodyarmorModules(widen(CASTING_STABILIZATION));
-        MekanismIMC.addMekaSuitBodyarmorModules(widen(CAST_TIME));
     }
 
     private static Item createModuleItem(Supplier<Holder<ModuleData<?>>> module) {
@@ -151,16 +138,12 @@ public final class ArcanaModules {
         return FOCUS;
     }
 
-    private static Holder<? extends ModuleData<?>> cooldownAccelerationHolder() {
-        return COOLDOWN_ACCELERATION;
+    private static Holder<? extends ModuleData<?>> cooldownReductionHolder() {
+        return COOLDOWN_REDUCTION;
     }
 
     private static Holder<? extends ModuleData<?>> castingStabilizationHolder() {
         return CASTING_STABILIZATION;
-    }
-
-    private static Holder<? extends ModuleData<?>> castTimeHolder() {
-        return CAST_TIME;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

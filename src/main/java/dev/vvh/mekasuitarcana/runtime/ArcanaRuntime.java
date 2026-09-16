@@ -65,7 +65,7 @@ public final class ArcanaRuntime {
         for (var equipped : ArcanaCarrier.readEquipped(player)) {
             ItemStack stack = equipped.stack();
             ArcanaCarrier c = powered(equipped.carrier(), stack, rates);
-            if (rates.grantsConcentration(c.castTimeUnits())) {
+            if (rates.grantsConcentration(c.castingUnits())) {
                 magic.markPoisoned();
                 return;
             }
@@ -89,20 +89,11 @@ public final class ArcanaRuntime {
             return;
         }
         SpellAttributeService.withdraw(player);
-        double baseCooldown = player.getAttributeValue(AttributeRegistry.COOLDOWN_REDUCTION);
-        double baseCasting = player.getAttributeValue(AttributeRegistry.CAST_TIME_REDUCTION);
         List<ArcanaCarrier> candidates = new ArrayList<>();
         for (var carrier : equipped) candidates.add(powered(carrier.carrier(), carrier.stack(), rates));
         SpellAttributeService.sync(player, candidates, rates);
-        // Read the actual marginal values, including vanilla multiplicative modifiers from
-        // other equipment and native attribute bounds, rather than guessing from unit counts.
-        double cooldownDelta = Math.max(0,
-                player.getAttributeValue(AttributeRegistry.COOLDOWN_REDUCTION) - baseCooldown);
-        double castingDelta = Math.max(0,
-                player.getAttributeValue(AttributeRegistry.CAST_TIME_REDUCTION) - baseCasting);
         MagicData magic = MagicData.getPlayerMagicData(player);
         State state = STATES.computeIfAbsent(player.getUUID(), ignored -> new State());
-        state.cooldownCarry.keySet().retainAll(magic.getPlayerCooldowns().getSpellCooldowns().values());
         if (!magic.isCasting()) {
             state.castCarry = 0;
             state.preparedSpell = "";
@@ -111,24 +102,15 @@ public final class ArcanaRuntime {
         for (var equippedCarrier : equipped) {
             ItemStack stack = equippedCarrier.stack();
             ArcanaCarrier carrier = powered(equippedCarrier.carrier(), stack, rates);
-            boolean cooldownPaid = true;
+            boolean cooldownPaid = carrier.cooldownUnits() > 0 && carrier.cooldownStep() > 0;
             boolean castingPaid = true;
-            boolean castTimePaid = true;
-            if (carrier.cooldownUnits() > 0 && carrier.cooldownStep() > 0) {
-                cooldownPaid = accelerateCooldowns(player, stack, carrier, rates, state, baseCooldown, cooldownDelta);
-            }
             if (carrier.castingUnits() > 0 && magic.isCasting()) {
-                castingPaid = accelerateCasting(player, stack, carrier, rates, state, baseCasting, castingDelta);
-            }
-            if (carrier.castTimeUnits() > 0 && magic.isCasting()) {
-                castTimePaid = accelerateCastTime(player, stack, carrier, rates, state);
+                castingPaid = accelerateCasting(player, stack, carrier, rates, state);
             }
             effects.add(filtered(carrier, carrier.amplificationUnits(), carrier.focusUnits(),
                     cooldownPaid ? carrier.cooldownUnits() : 0,
                     castingPaid ? carrier.castingUnits() : 0,
-                    castTimePaid ? carrier.castTimeUnits() : 0,
-                    magic.getCastType() == CastType.CONTINUOUS ? 0 : carrier.castingStep(),
-                    carrier.castTimeStep()));
+                    magic.getCastType() == CastType.CONTINUOUS ? 0 : carrier.castingStep()));
         }
         SpellAttributeService.sync(player, effects, rates);
         // Mana is the lowest priority load: active casting/cooldowns have already paid.
@@ -166,7 +148,7 @@ public final class ArcanaRuntime {
             // Iron's snapshots duration immediately after this event. Start at the native
             // duration; the tick driver purchases acceleration only while energy is paid.
             effects.add(filtered(c, c.amplificationUnits(), c.focusUnits(), c.cooldownUnits(),
-                    c.castingUnits(), c.castTimeUnits(), 0, c.castTimeStep()));
+                    c.castingUnits(), 0));
         }
         SpellAttributeService.sync(player, effects, rates);
         State state = STATES.computeIfAbsent(player.getUUID(), ignored -> new State());
@@ -201,12 +183,11 @@ public final class ArcanaRuntime {
             // transaction used the carrier's final FE. The next tick reconciles them.
             ArcanaCarrier remaining = powered(c, stack, rates);
             effects.add(new ArcanaCarrier(remaining.manaUnits(), amplification, focus,
-                    remaining.cooldownUnits(), remaining.castingUnits(), remaining.castTimeUnits(),
+                    remaining.cooldownUnits(), remaining.castingUnits(),
                     c.manaSpeedPreset(), c.focusSchool(),
                     c.amplificationStep(), c.focusStep(), c.cooldownStep(),
                     MagicData.getPlayerMagicData(player).getCastType() == CastType.CONTINUOUS
-                            ? 0 : c.castingStep(),
-                    c.castTimeStep()));
+                            ? 0 : c.castingStep()));
         }
         SpellAttributeService.sync(player, effects, rates);
     }
@@ -233,17 +214,17 @@ public final class ArcanaRuntime {
         for (var equippedCarrier : equipped) {
             ItemStack stack = equippedCarrier.stack();
             ArcanaCarrier c = powered(equippedCarrier.carrier(), stack, rates);
-            if (c.castingUnits() <= 0 || c.castingStep() <= 0.0D) {
+            if (c.cooldownUnits() <= 0 || c.cooldownStep() <= 0.0D) {
                 continue;
             }
-            double step = c.castingStep();
+            double step = c.cooldownStep();
             double fraction = Math.min(1.0D,
-                    c.castingUnits() * (rates.castingPercentPerUnit() / 100.0D) * step);
+                    c.cooldownUnits() * (rates.cooldownPercentPerUnit() / 100.0D) * step);
             if (fraction <= 0.0D) {
                 continue;
             }
             int savedTicks = (int) Math.round(effective * fraction);
-            double cost = rates.castingFePerTick() + rates.castingSavedTimeFePerTick() * savedTicks;
+            double cost = rates.cooldownFePerTickPerSlot() + rates.cooldownSavedTimeFePerTick() * savedTicks;
             if (pay(stack, cost)) {
                 totalSavedTicks = Math.max(totalSavedTicks, savedTicks);
                 totalReductionFraction = Math.max(totalReductionFraction, fraction);
@@ -260,55 +241,7 @@ public final class ArcanaRuntime {
         refresh(player);
     }
 
-    private static boolean accelerateCooldowns(ServerPlayer player, ItemStack stack, ArcanaCarrier c,
-            ArcanaRates rates, State state, double baseRating, double bonusDelta) {
-        var cooldowns = MagicData.getPlayerMagicData(player).getPlayerCooldowns();
-        double extra = extraTicks(baseRating, bonusDelta);
-        List<CooldownWork> work = new ArrayList<>();
-        double totalCost = 0;
-        for (var entry : new ArrayList<>(cooldowns.getSpellCooldowns().entrySet())) {
-            CooldownInstance cooldown = entry.getValue();
-            int remaining = cooldown.getCooldownRemaining();
-            if (remaining <= 0) continue;
-            double progress = state.cooldownCarry.getOrDefault(cooldown, 0.0) + extra;
-            // Leave the final ordinary tick to Iron's. Zero/negative durations are never minted.
-            int ticks = (int) Math.min(Math.max(0, remaining - 1), Math.floor(progress));
-            double cost = rates.cooldownFePerTickPerSlot() * c.cooldownStep()
-                    + rates.cooldownSavedTimeFePerTick() * ticks;
-            totalCost += cost;
-            work.add(new CooldownWork(cooldown, ticks, Math.max(0, progress - Math.floor(progress))));
-        }
-        // One transaction for the entire tick: insufficient FE never favors whichever
-        // cooldown happened to be visited first in Iron's map.
-        if (!pay(stack, totalCost)) {
-            state.cooldownCarry.clear();
-            return false;
-        }
-        boolean changed = false;
-        for (CooldownWork item : work) {
-            state.cooldownCarry.put(item.cooldown(), item.carry());
-            if (item.ticks() > 0) {
-                cooldowns.decrementCooldown(item.cooldown(), item.ticks());
-                changed = true;
-            }
-        }
-        if (changed) cooldowns.syncToPlayer(player);
-        return true;
-    }
-
     private static boolean accelerateCasting(ServerPlayer player, ItemStack stack, ArcanaCarrier c,
-            ArcanaRates rates, State state, double baseRating, double bonusDelta) {
-        // Casting Stabilization now reduces spell cooldowns rather than accelerating cast duration.
-        // It maintains casting movement freedom while channeling, consuming the base casting FE per tick.
-        double cost = rates.castingFePerTick();
-        if (!pay(stack, cost)) {
-            state.castCarry = 0;
-            return false;
-        }
-        return true;
-    }
-
-    private static boolean accelerateCastTime(ServerPlayer player, ItemStack stack, ArcanaCarrier c,
             ArcanaRates rates, State state) {
         MagicData magic = MagicData.getPlayerMagicData(player);
         if (magic.getCastType() != CastType.LONG || !magic.isCasting()) {
@@ -318,18 +251,18 @@ public final class ArcanaRuntime {
         if (remaining <= 0) {
             return true;
         }
-        double step = c.castTimeStep();
-        double fraction = Math.min(1.0D, c.castTimeUnits() * (rates.castTimePercentPerUnit() / 100.0D) * step);
+        double step = c.castingStep();
+        double fraction = Math.min(1.0D, c.castingUnits() * (rates.castingPercentPerUnit() / 100.0D) * step);
         if (fraction <= 0.0D) {
-            if (rates.grantsConcentration(c.castTimeUnits())) {
-                return pay(stack, rates.castTimeFePerTick());
+            if (rates.grantsConcentration(c.castingUnits())) {
+                return pay(stack, rates.castingFePerTick());
             }
             return true;
         }
 
         if (fraction >= 1.0D) {
             int ticksSaved = remaining;
-            double cost = rates.castTimeFePerTick() + rates.castTimeSavedTimeFePerTick() * ticksSaved;
+            double cost = rates.castingFePerTick() + rates.castingSavedTimeFePerTick() * ticksSaved;
             if (!pay(stack, cost)) {
                 return false;
             }
@@ -345,7 +278,7 @@ public final class ArcanaRuntime {
         double extraPerTick = fraction / (1.0D - fraction);
         double progress = state.castCarry + extraPerTick;
         int ticksToAdvance = (int) Math.min(Math.max(0, remaining - 1), Math.floor(progress));
-        double cost = rates.castTimeFePerTick() + rates.castTimeSavedTimeFePerTick() * ticksToAdvance;
+        double cost = rates.castingFePerTick() + rates.castingSavedTimeFePerTick() * ticksToAdvance;
         if (!pay(stack, cost)) {
             state.castCarry = 0;
             return false;
@@ -376,7 +309,7 @@ public final class ArcanaRuntime {
         long consumed = ArcanaEnergy.consume(stack, charged);
         int funded = rates.manaRestorableForFe(consumed, headroom);
         double credited = funded > 0 ? ManaBridge.creditExact(player, funded) : 0;
-        long owed = cost(credited * Math.max(0, rates.fePerMana()));
+        long owed = cost(rates.feForMana((int) Math.round(credited)));
         if (consumed > owed) ArcanaEnergy.refund(stack, consumed - owed);
     }
 
@@ -391,15 +324,14 @@ public final class ArcanaRuntime {
         int casting = ArcanaEnergy.canPay(stack, cost(rates.castingFePerTick())) ? c.castingUnits() : 0;
         int cooldown = c.cooldownStep() > 0 && ArcanaEnergy.canPay(stack,
                 cost(rates.cooldownFePerTickPerSlot() * c.cooldownStep())) ? c.cooldownUnits() : 0;
-        int castTime = ArcanaEnergy.canPay(stack, cost(rates.castTimeFePerTick())) ? c.castTimeUnits() : 0;
-        return filtered(c, amplification, focus, cooldown, casting, castTime, c.castingStep(), c.castTimeStep());
+        return filtered(c, amplification, focus, cooldown, casting, c.castingStep());
     }
 
     private static ArcanaCarrier filtered(ArcanaCarrier c, int amplification, int focus, int cooldown,
-            int casting, int castTime, double castingStep, double castTimeStep) {
-        return new ArcanaCarrier(c.manaUnits(), amplification, focus, cooldown, casting, castTime,
+            int casting, double castingStep) {
+        return new ArcanaCarrier(c.manaUnits(), amplification, focus, cooldown, casting,
                 c.manaSpeedPreset(), c.focusSchool(), c.amplificationStep(), c.focusStep(),
-                c.cooldownStep(), castingStep, castTimeStep);
+                c.cooldownStep(), castingStep);
     }
 
     private static double extraTicks(double baselineRating, double bonus) {
@@ -455,10 +387,7 @@ public final class ArcanaRuntime {
     }
 
     private static final class State {
-        private final Map<CooldownInstance, Double> cooldownCarry = new IdentityHashMap<>();
         private double castCarry;
         private String preparedSpell = "";
     }
-
-    private record CooldownWork(CooldownInstance cooldown, int ticks, double carry) {}
 }

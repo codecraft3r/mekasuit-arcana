@@ -57,16 +57,11 @@ public final class ArcanaConfig {
         private static final ConfigValue<Double> CASTING_PERCENT;
         private static final ConfigValue<Integer> CASTING_FE;
         private static final ConfigValue<Double> CASTING_SAVED_FE;
-        private static final ConfigValue<Integer> CAST_TIME_MAX_UNITS;
-        private static final ConfigValue<Double> CAST_TIME_PERCENT;
-        private static final ConfigValue<Integer> CAST_TIME_FE;
-        private static final ConfigValue<Double> CAST_TIME_SAVED_FE;
         private static final ConfigValue<Boolean> DISABLED_MANA;
         private static final ConfigValue<Boolean> DISABLED_AMP;
         private static final ConfigValue<Boolean> DISABLED_FOCUS;
         private static final ConfigValue<Boolean> DISABLED_COOLDOWN;
         private static final ConfigValue<Boolean> DISABLED_CASTING;
-        private static final ConfigValue<Boolean> DISABLED_CAST_TIME;
 
         static {
             ArcanaTuning.Values defaults = ArcanaTuning.Values.defaults();
@@ -98,9 +93,9 @@ public final class ArcanaConfig {
             FOCUS_FE = BUILDER.defineInRange("fe_per_cast", defaults.focusFePerCast(), 0, 1_000_000);
             BUILDER.pop();
 
-            BUILDER.push("cooldown_acceleration");
-            COOLDOWN_MAX_UNITS = BUILDER.defineInRange("max_units", defaults.cap(ModuleKind.COOLDOWN_ACCELERATION), 0, 5);
-            COOLDOWN_PERCENT = BUILDER.defineInRange("percent_per_unit", defaults.cooldownPercentPerUnit(), 0.0D, ArcanaTuning.hardPercentPerUnit(ModuleKind.COOLDOWN_ACCELERATION));
+            BUILDER.push("cooldown_reduction");
+            COOLDOWN_MAX_UNITS = BUILDER.defineInRange("max_units", defaults.cap(ModuleKind.COOLDOWN_REDUCTION), 0, 4);
+            COOLDOWN_PERCENT = BUILDER.defineInRange("percent_per_unit", defaults.cooldownPercentPerUnit(), 0.0D, ArcanaTuning.hardPercentPerUnit(ModuleKind.COOLDOWN_REDUCTION));
             COOLDOWN_FE = BUILDER.defineInRange("fe_per_tick_per_slot", defaults.cooldownFePerTickPerSlot(), 0, 1_000_000);
             COOLDOWN_SAVED_FE = BUILDER.defineInRange("saved_time_fe_per_tick", defaults.cooldownSavedTimeFePerTick(), 0.0D, 10_000.0D);
             BUILDER.pop();
@@ -111,22 +106,14 @@ public final class ArcanaConfig {
             CASTING_FE = BUILDER.defineInRange("fe_per_tick", defaults.castingFePerTick(), 0, 1_000_000);
             CASTING_SAVED_FE = BUILDER.defineInRange("saved_time_fe_per_tick", defaults.castingSavedTimeFePerTick(), 0.0D, 10_000.0D);
             BUILDER.pop();
-
-            BUILDER.push("cast_time");
-            CAST_TIME_MAX_UNITS = BUILDER.defineInRange("max_units", defaults.cap(ModuleKind.CAST_TIME), 0, 4);
-            CAST_TIME_PERCENT = BUILDER.defineInRange("percent_per_unit", defaults.castTimePercentPerUnit(), 0.0D, ArcanaTuning.hardPercentPerUnit(ModuleKind.CAST_TIME));
-            CAST_TIME_FE = BUILDER.defineInRange("fe_per_tick", defaults.castTimeFePerTick(), 0, 1_000_000);
-            CAST_TIME_SAVED_FE = BUILDER.defineInRange("saved_time_fe_per_tick", defaults.castTimeSavedTimeFePerTick(), 0.0D, 10_000.0D);
-            BUILDER.pop();
             BUILDER.pop();
 
             BUILDER.push("disabled_modules");
             DISABLED_MANA = BUILDER.define("mana_conversion", false);
             DISABLED_AMP = BUILDER.define("amplification", false);
             DISABLED_FOCUS = BUILDER.define("focus", false);
-            DISABLED_COOLDOWN = BUILDER.define("cooldown_acceleration", false);
+            DISABLED_COOLDOWN = BUILDER.define("cooldown_reduction", false);
             DISABLED_CASTING = BUILDER.define("casting_stabilization", false);
-            DISABLED_CAST_TIME = BUILDER.define("cast_time", false);
             BUILDER.pop();
             SPEC = BUILDER.build();
         }
@@ -138,9 +125,8 @@ public final class ArcanaConfig {
                 if (DISABLED_MANA.get()) disabled.add(ModuleKind.MANA_CONVERSION);
                 if (DISABLED_AMP.get()) disabled.add(ModuleKind.AMPLIFICATION);
                 if (DISABLED_FOCUS.get()) disabled.add(ModuleKind.FOCUS);
-                if (DISABLED_COOLDOWN.get()) disabled.add(ModuleKind.COOLDOWN_ACCELERATION);
+                if (DISABLED_COOLDOWN.get()) disabled.add(ModuleKind.COOLDOWN_REDUCTION);
                 if (DISABLED_CASTING.get()) disabled.add(ModuleKind.CASTING_STABILIZATION);
-                if (DISABLED_CAST_TIME.get()) disabled.add(ModuleKind.CAST_TIME);
 
                 return Optional.of(new ArcanaTuning.Values(
                         FE_PER_MANA.get(),
@@ -149,9 +135,8 @@ public final class ArcanaConfig {
                         AMP_PERCENT.get(), AMP_FE.get(), FOCUS_PERCENT.get(), FOCUS_FE.get(),
                         COOLDOWN_PERCENT.get(), COOLDOWN_FE.get(), COOLDOWN_SAVED_FE.get(),
                         CASTING_PERCENT.get(), CASTING_FE.get(), CASTING_SAVED_FE.get(),
-                        CAST_TIME_PERCENT.get(), CAST_TIME_FE.get(), CAST_TIME_SAVED_FE.get(),
                         List.of(MANA_MAX_UNITS.get(), AMP_MAX_UNITS.get(), FOCUS_MAX_UNITS.get(),
-                                COOLDOWN_MAX_UNITS.get(), CASTING_MAX_UNITS.get(), CAST_TIME_MAX_UNITS.get()),
+                                COOLDOWN_MAX_UNITS.get(), CASTING_MAX_UNITS.get()),
                         disabled));
             } catch (IllegalStateException unloadedDuringRead) {
                 return Optional.empty();

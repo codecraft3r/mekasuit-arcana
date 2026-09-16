@@ -63,13 +63,11 @@ public final class RuntimeTimingVerification {
         MinecraftServer server = source.getServer();
         Check[] checks = {
                 checked("focus_school_charge", () -> focusSchoolCharge(server)),
-                checked("cooldown_progress_and_powerloss", () -> cooldownProgressAndPowerloss(server)),
-                checked("cooldown_no_upfront_double_bonus", () -> cooldownBaseline(server)),
+                checked("cooldown_reduction_zero", () -> cooldownReductionZero(server)),
+                checked("cooldown_reduction_partial", () -> cooldownReductionPartial(server)),
                 checked("canceled_mana_refund", () -> canceledManaRefund(server)),
-                checked("casting_native_long_spell", () -> castingNativeLongSpell(server)),
-                checked("casting_stabilization_cooldown", () -> castingStabilizationCooldown(server)),
-                checked("cast_time_instant_reduction", () -> castTimeInstantReduction(server)),
-                checked("cast_time_concentration_protection", () -> castTimeConcentrationProtection(server)),
+                checked("casting_stabilization_instant", () -> castingStabilizationInstant(server)),
+                checked("casting_stabilization_concentration", () -> castingStabilizationConcentration(server)),
                 checked("movement_binary", () -> movementBinary(server)),
                 checked("empty_dry", () -> emptyDry(server))
         };
@@ -117,7 +115,7 @@ public final class RuntimeTimingVerification {
                 SchoolRegistry.ICE.get(), CastSource.SPELLBOOK));
         double nonmatchingFireAfter = nonmatching.getAttributeValue(SpellSchool.FIRE.spellPowerAttribute());
         long nonmatchingAfter = ArcanaEnergy.stored(nonmatchingBody);
-        boolean passed = close(firePowered, fireBase + 2.0D)
+        boolean passed = close(firePowered, fireBase + 4.0D)
                 && close(icePowered, attributeWithoutCarrier(server, "focus_ice_base", SpellSchool.ICE.spellPowerAttribute()))
                 && after < before
                 && nonmatchingAfter == nonmatchingBefore;
@@ -127,46 +125,43 @@ public final class RuntimeTimingVerification {
                 + ", ice=" + icePowered);
     }
 
-    private static Check cooldownProgressAndPowerloss(MinecraftServer server) {
-        FakePlayer player = player(server, "cooldown");
-        ItemStack body = body(player, 4_000_000L, install(ArcanaModules.COOLDOWN_ACCELERATION, 5));
-        player.setItemSlot(EquipmentSlot.CHEST, body);
-        MagicData magic = magic(player);
-        magic.getPlayerCooldowns().addCooldown(COOLDOWN_ID, 100);
-        ArcanaRuntime.refresh(player);
-        long beforeEnergy = ArcanaEnergy.stored(body);
-        int before = cooldownRemaining(magic);
-        ArcanaRuntime.tick(player);
-        int after = cooldownRemaining(magic);
-        long afterEnergy = ArcanaEnergy.stored(body);
-
-        ItemStack dryBody = body.copyWithCount(1);
-        dryBody.set(MekanismDataComponents.ATTACHED_ENERGY.get(), new AttachedEnergy(List.of(0L)));
-        player.setItemSlot(EquipmentSlot.CHEST, dryBody);
-        int dryBefore = cooldownRemaining(magic);
-        ArcanaRuntime.tick(player);
-        int dryAfter = cooldownRemaining(magic);
-        boolean passed = ArcanaCarrier.readStack(body, false).cooldownUnits() == 5
-                && after < before && afterEnergy < beforeEnergy && dryAfter == dryBefore;
-        return new Check("", passed, "cooldown=" + before + "->" + after
-                + ", FE=" + beforeEnergy + "->" + afterEnergy + ", dry=" + dryBefore + "->" + dryAfter);
-    }
-
-    private static Check cooldownBaseline(MinecraftServer server) {
-        FakePlayer player = player(server, "cooldown_baseline");
+    private static Check cooldownReductionZero(MinecraftServer server) {
+        FakePlayer player = player(server, "cooldown_zero");
         AbstractSpell spell = findLongSpell();
+        if (spell == null) return new Check("", false, "no registered LONG spell found");
+        ItemStack body = body(player, 4_000_000L, install(ArcanaModules.COOLDOWN_REDUCTION, 4));
+        player.setItemSlot(EquipmentSlot.CHEST, body);
+        ArcanaRuntime.refresh(player);
         int baseline = io.redspace.ironsspellbooks.capabilities.magic.MagicManager
                 .getEffectiveSpellCooldown(spell, player, CastSource.SPELLBOOK);
-        player.setItemSlot(EquipmentSlot.CHEST, body(player, 4_000_000L,
-                install(ArcanaModules.COOLDOWN_ACCELERATION, 5)));
+        var event = new io.redspace.ironsspellbooks.api.events.SpellCooldownAddedEvent.Pre(
+                baseline, spell, player, CastSource.SPELLBOOK);
+        long beforeEnergy = ArcanaEnergy.stored(body);
+        NeoForge.EVENT_BUS.post(event);
+        long afterEnergy = ArcanaEnergy.stored(body);
+        boolean passed = event.isCanceled() && event.getEffectiveCooldown() == 0 && afterEnergy < beforeEnergy;
+        return new Check("", passed, "baseline=" + baseline + ", effective=" + event.getEffectiveCooldown()
+                + ", canceled=" + event.isCanceled() + ", FE=" + beforeEnergy + "->" + afterEnergy);
+    }
+
+    private static Check cooldownReductionPartial(MinecraftServer server) {
+        FakePlayer player = player(server, "cooldown_partial");
+        AbstractSpell spell = findLongSpell();
+        if (spell == null) return new Check("", false, "no registered LONG spell found");
+        ItemStack body = body(player, 4_000_000L, install(ArcanaModules.COOLDOWN_REDUCTION, 2));
+        player.setItemSlot(EquipmentSlot.CHEST, body);
         ArcanaRuntime.refresh(player);
-        int enhanced = io.redspace.ironsspellbooks.capabilities.magic.MagicManager
+        int baseline = io.redspace.ironsspellbooks.capabilities.magic.MagicManager
                 .getEffectiveSpellCooldown(spell, player, CastSource.SPELLBOOK);
         var event = new io.redspace.ironsspellbooks.api.events.SpellCooldownAddedEvent.Pre(
-                enhanced, spell, player, CastSource.SPELLBOOK);
+                baseline, spell, player, CastSource.SPELLBOOK);
+        long beforeEnergy = ArcanaEnergy.stored(body);
         NeoForge.EVENT_BUS.post(event);
-        return new Check("", enhanced < baseline && event.getEffectiveCooldown() == baseline,
-                "native=" + baseline + ", boosted=" + enhanced + ", restored=" + event.getEffectiveCooldown());
+        long afterEnergy = ArcanaEnergy.stored(body);
+        int expected = (int) Math.round(baseline * 0.5D);
+        boolean passed = !event.isCanceled() && event.getEffectiveCooldown() == expected && afterEnergy < beforeEnergy;
+        return new Check("", passed, "baseline=" + baseline + ", effective=" + event.getEffectiveCooldown()
+                + ", expected=" + expected + ", FE=" + beforeEnergy + "->" + afterEnergy);
     }
 
     private static Check canceledManaRefund(MinecraftServer server) {
@@ -191,52 +186,9 @@ public final class RuntimeTimingVerification {
                 "FE=" + before + "->" + after + ", mana=" + magic.getMana());
     }
 
-    private static Check castingNativeLongSpell(MinecraftServer server) {
-        FakePlayer player = player(server, "casting");
+    private static Check castingStabilizationInstant(MinecraftServer server) {
+        FakePlayer player = player(server, "cast_instant");
         ItemStack body = body(player, 4_000_000L, install(ArcanaModules.CASTING_STABILIZATION, 4));
-        player.setItemSlot(EquipmentSlot.CHEST, body);
-        ArcanaRuntime.refresh(player);
-        AbstractSpell spell = findLongSpell();
-        if (spell == null) return new Check("", false, "no registered LONG spell found");
-        int level = Math.max(spell.getMinLevel(), 1);
-        MagicData magic = magic(player);
-        SpellPreCastEvent pre = new SpellPreCastEvent(player, spell.getSpellId().toString(), level,
-                spell.getSchoolType(), CastSource.SPELLBOOK);
-        NeoForge.EVENT_BUS.post(pre);
-        double movementDuringCast = player.getAttributeValue(AttributeRegistry.CASTING_MOVESPEED);
-        magic.initiateCast(spell, level, spell.getCastTime(level), CastSource.SPELLBOOK, "mainhand");
-        int baseline = magic.getCastDurationRemaining();
-        long beforeEnergy = ArcanaEnergy.stored(body);
-        ArcanaRuntime.tick(player);
-        long afterEnergy = ArcanaEnergy.stored(body);
-        boolean passed = !pre.isCanceled() && spell.getCastType() == CastType.LONG && baseline > 1
-                && afterEnergy < beforeEnergy && movementDuringCast > 1.0D;
-        return new Check("", passed, "spell=" + spell.getSpellId() + ", duration=" + baseline
-                + ", FE=" + beforeEnergy + "->" + afterEnergy + ", movement=" + movementDuringCast);
-    }
-
-    private static Check castingStabilizationCooldown(MinecraftServer server) {
-        FakePlayer player = player(server, "casting_cooldown");
-        AbstractSpell spell = findLongSpell();
-        if (spell == null) return new Check("", false, "no registered LONG spell found");
-        ItemStack body = body(player, 4_000_000L, install(ArcanaModules.CASTING_STABILIZATION, 4));
-        player.setItemSlot(EquipmentSlot.CHEST, body);
-        ArcanaRuntime.refresh(player);
-        int baseline = io.redspace.ironsspellbooks.capabilities.magic.MagicManager
-                .getEffectiveSpellCooldown(spell, player, CastSource.SPELLBOOK);
-        var event = new io.redspace.ironsspellbooks.api.events.SpellCooldownAddedEvent.Pre(
-                baseline, spell, player, CastSource.SPELLBOOK);
-        long beforeEnergy = ArcanaEnergy.stored(body);
-        NeoForge.EVENT_BUS.post(event);
-        long afterEnergy = ArcanaEnergy.stored(body);
-        boolean passed = event.isCanceled() && event.getEffectiveCooldown() == 0 && afterEnergy < beforeEnergy;
-        return new Check("", passed, "baseline=" + baseline + ", effective=" + event.getEffectiveCooldown()
-                + ", canceled=" + event.isCanceled() + ", FE=" + beforeEnergy + "->" + afterEnergy);
-    }
-
-    private static Check castTimeInstantReduction(MinecraftServer server) {
-        FakePlayer player = player(server, "cast_time_instant");
-        ItemStack body = body(player, 4_000_000L, install(ArcanaModules.CAST_TIME, 4));
         player.setItemSlot(EquipmentSlot.CHEST, body);
         ArcanaRuntime.refresh(player);
         AbstractSpell spell = findLongSpell();
@@ -253,9 +205,9 @@ public final class RuntimeTimingVerification {
         return new Check("", passed, "duration=" + before + "->" + after + ", FE=" + beforeEnergy + "->" + afterEnergy);
     }
 
-    private static Check castTimeConcentrationProtection(MinecraftServer server) {
-        FakePlayer player = player(server, "cast_time_concentration");
-        ItemStack body = body(player, 4_000_000L, install(ArcanaModules.CAST_TIME, 1));
+    private static Check castingStabilizationConcentration(MinecraftServer server) {
+        FakePlayer player = player(server, "cast_concentration");
+        ItemStack body = body(player, 4_000_000L, install(ArcanaModules.CASTING_STABILIZATION, 1));
         player.setItemSlot(EquipmentSlot.CHEST, body);
         ArcanaRuntime.refresh(player);
         AbstractSpell spell = findLongSpell();

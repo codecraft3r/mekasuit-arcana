@@ -87,9 +87,6 @@ public record ArcanaRates(
         double castingPercentPerUnit,
         int castingFePerTick,
         double castingSavedTimeFePerTick,
-        double castTimePercentPerUnit,
-        int castTimeFePerTick,
-        double castTimeSavedTimeFePerTick,
         List<Integer> maxUnits) {
 
     /** Conversion-speed presets available in the module tweaker. */
@@ -101,16 +98,15 @@ public record ArcanaRates(
     }
 
     /**
-     * The six in-scope modules, in a stable order that matches {@code maxUnits}. Keeping this
+     * The five in-scope modules, in a stable order that matches {@code maxUnits}. Keeping this
      * enum as the address of a cap stops callers from passing a raw magic index.
      */
     public enum ModuleKind {
         MANA_CONVERSION,
         AMPLIFICATION,
         FOCUS,
-        COOLDOWN_ACCELERATION,
-        CASTING_STABILIZATION,
-        CAST_TIME
+        COOLDOWN_REDUCTION,
+        CASTING_STABILIZATION
     }
 
     public ArcanaRates {
@@ -155,20 +151,17 @@ public record ArcanaRates(
                 List.of(0, 1_000, 4_000, 7_000, 10_000),
                 10.0D,
                 List.of(100, 400, 1_000, 2_500),
-                50.0D,
-                500,
-                50.0D,
+                100.0D,
                 500,
                 100.0D,
-                20,
-                40.0D,
+                500,
                 25.0D,
                 20,
                 40.0D,
                 25.0D,
                 20,
                 40.0D,
-                List.of(4, 4, 4, 5, 4, 4));
+                List.of(4, 4, 4, 4, 4));
     }
 
     /** Hard cap on how many units of this kind one carrier may hold. */
@@ -231,42 +224,74 @@ public record ArcanaRates(
         return clampUnits(ModuleKind.FOCUS, units) * Math.max(0.0D, focusPercentPerUnit);
     }
 
-    /** COOLDOWN_REDUCTION percent rating for a unit count, clamped to the cap. */
-    public double cooldownReductionPercent(int units) {
-        return clampUnits(ModuleKind.COOLDOWN_ACCELERATION, units)
+    /** Linear spell cooldown reduction percent for a unit count, clamped to the cap. */
+    public double cooldownPercent(int units) {
+        return clampUnits(ModuleKind.COOLDOWN_REDUCTION, units)
                 * Math.max(0.0D, cooldownPercentPerUnit);
     }
 
-    /** Cooldown reduction percent from Casting Stabilization for a unit count, clamped to the cap. */
-    public double castingCooldownReductionPercent(int units) {
+    /** Compatibility alias for cooldown reduction percent. */
+    public double cooldownReductionPercent(int units) {
+        return cooldownPercent(units);
+    }
+
+    /**
+     * Cooldown multiplier: linear reduction of 25% per unit, reaching 0.0 (no cooldown) at 4 units.
+     */
+    public double cooldownMultiplier(int units) {
+        double percent = cooldownPercent(units);
+        return Math.max(0.0D, 1.0D - (percent / 100.0D));
+    }
+
+    /** Compatibility alias. */
+    public double cooldownReductionMultiplier(int units) {
+        return cooldownMultiplier(units);
+    }
+
+    /** Compatibility alias. */
+    public double castingCooldownReductionMultiplier(int units) {
+        return cooldownMultiplier(units);
+    }
+
+    /** Compatibility alias. */
+    public double castTimeReductionMultiplier(int units) {
+        return castingMultiplier(units);
+    }
+
+    /** Linear cast duration reduction percent for a unit count, clamped to the cap. */
+    public double castingPercent(int units) {
         return clampUnits(ModuleKind.CASTING_STABILIZATION, units)
                 * Math.max(0.0D, castingPercentPerUnit);
     }
 
     /** Compatibility alias for cast time reduction queries. */
-    public double castTimeReductionPercent(int units) {
-        return castingCooldownReductionPercent(units);
+    public double castTimePercent(int units) {
+        return castingPercent(units);
     }
 
-    /** Linear cast-time reduction percent for a unit count, clamped to the cap. */
-    public double castTimePercent(int units) {
-        return clampUnits(ModuleKind.CAST_TIME, units)
-                * Math.max(0.0D, castTimePercentPerUnit);
+    /** Compatibility alias for cast time reduction queries. */
+    public double castTimeReductionPercent(int units) {
+        return castingPercent(units);
     }
 
     /**
      * Cast time multiplier: linear reduction of 25% per unit, reaching 0.0 (instant cast) at 4 units.
      */
-    public double castTimeMultiplier(int units) {
-        double percent = castTimePercent(units);
+    public double castingMultiplier(int units) {
+        double percent = castingPercent(units);
         return Math.max(0.0D, 1.0D - (percent / 100.0D));
+    }
+
+    /** Compatibility alias for cast time multiplier. */
+    public double castTimeMultiplier(int units) {
+        return castingMultiplier(units);
     }
 
     /**
      * Whether 1 or more units grant concentration (uninterruptible casting from damage).
      */
     public boolean grantsConcentration(int units) {
-        return clampUnits(ModuleKind.CAST_TIME, units) >= 1;
+        return clampUnits(ModuleKind.CASTING_STABILIZATION, units) >= 1;
     }
 
     /**
@@ -309,29 +334,6 @@ public record ArcanaRates(
     }
 
     /**
-     * Multiplier Iron's applies to a spell's base cooldown for the rating this many units add.
-     * 1.0 means no change and smaller means faster; a suit with no cooldown units returns exactly
-     * 1.0 rather than relying on the formula's degenerate branch.
-     */
-    public double cooldownReductionMultiplier(int units) {
-        return reductionMultiplier(ratingDelta(cooldownReductionPercent(units)));
-    }
-
-    /**
-     * Cooldown multiplier for Casting Stabilization: linear reduction of 25% per unit,
-     * reaching 0.0 (no cooldown) at 4 units.
-     */
-    public double castingCooldownReductionMultiplier(int units) {
-        double percent = castingCooldownReductionPercent(units);
-        return Math.max(0.0D, 1.0D - (percent / 100.0D));
-    }
-
-    /** Multiplier for Casting Stabilization reduction (compatibility alias). */
-    public double castTimeReductionMultiplier(int units) {
-        return castingCooldownReductionMultiplier(units);
-    }
-
-    /**
      * Fraction of a duration this many units actually remove, in [0, 1). The FE "time saved" terms
      * are priced against this, not against the raw rating, so paying more FE only ever buys the
      * reduction Iron's is willing to honour.
@@ -371,14 +373,9 @@ public record ArcanaRates(
         return fixed + saved;
     }
 
-    /**
-     * FE owed for this tick of cast time acceleration, including the term scaled by cast time saved.
-     */
+    /** Compatibility alias. */
     public double castTimeFePerTick(double castTimeReductionFraction) {
-        double fixed = Math.max(0, castTimeFePerTick);
-        double saved = Math.max(0.0D, castTimeSavedTimeFePerTick)
-                * clampFraction(castTimeReductionFraction);
-        return fixed + saved;
+        return castingFePerTick(castTimeReductionFraction);
     }
 
     /** FE owed for one successful cast that an Amplification Unit contributed to. */

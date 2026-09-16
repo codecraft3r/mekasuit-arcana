@@ -14,6 +14,6 @@ with ZipFile(root / "build/libs/mekasuit-arcana-0.1.0.jar") as release, ZipFile(
     if any(release.read(n) != harness.read(n) for n in classes):
         raise SystemExit("Production bytecode differs between release and harness")
     recipes = [n for n in release.namelist() if n.startswith("data/mekasuitarcana/recipe/") and n.endswith(".json")]
-    if len(recipes) != 6:
-        raise SystemExit("Expected six recipes")
-    print(f"PASS: {len(classes)} production classes, six recipes, no bundled dependencies or harness")
+    if len(recipes) != 5:
+        raise SystemExit("Expected five recipes")
+    print(f"PASS: {len(classes)} production classes, five recipes, no bundled dependencies or harness")

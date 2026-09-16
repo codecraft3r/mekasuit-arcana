@@ -24,22 +24,19 @@ public record ArcanaCarrier(
         int focusUnits,
         int cooldownUnits,
         int castingUnits,
-        int castTimeUnits,
         ArcanaRates.SpeedPreset manaSpeedPreset,
         SpellSchool focusSchool,
         double amplificationStep,
         double focusStep,
         double cooldownStep,
-        double castingStep,
-        double castTimeStep) {
+        double castingStep) {
 
     private static final String NAMESPACE = "mekasuitarcana";
     private static final ResourceLocation MANA_CONVERSION = id("mana_conversion");
     private static final ResourceLocation AMPLIFICATION = id("amplification");
     private static final ResourceLocation FOCUS = id("focus");
-    private static final ResourceLocation COOLDOWN = id("cooldown_acceleration");
+    private static final ResourceLocation COOLDOWN = id("cooldown_reduction");
     private static final ResourceLocation CASTING = id("casting_stabilization");
-    private static final ResourceLocation CAST_TIME = id("cast_time");
 
     private static final ResourceLocation MANA_SPEED = id("mana_speed_preset");
     private static final ResourceLocation AMPLIFICATION_STEP = id("amplification_step");
@@ -47,7 +44,6 @@ public record ArcanaCarrier(
     private static final ResourceLocation FOCUS_STEP = id("focus_step");
     private static final ResourceLocation COOLDOWN_STEP = id("cooldown_step");
     private static final ResourceLocation CASTING_STEP = id("casting_step");
-    private static final ResourceLocation CAST_TIME_STEP = id("cast_time_step");
 
     public ArcanaCarrier {
         manaUnits = Math.max(0, manaUnits);
@@ -55,20 +51,18 @@ public record ArcanaCarrier(
         focusUnits = Math.max(0, focusUnits);
         cooldownUnits = Math.max(0, cooldownUnits);
         castingUnits = Math.max(0, castingUnits);
-        castTimeUnits = Math.max(0, castTimeUnits);
         manaSpeedPreset = manaSpeedPreset == null ? ArcanaRates.SpeedPreset.NORMAL : manaSpeedPreset;
         focusSchool = focusSchool == null ? SpellSchool.defaultSchool() : focusSchool;
         amplificationStep = factor(amplificationStep);
         focusStep = factor(focusStep);
         cooldownStep = factor(cooldownStep);
         castingStep = factor(castingStep);
-        castTimeStep = factor(castTimeStep);
     }
 
     /** Empty state used for unsupported, unpowered, or module-free stacks. */
     public static ArcanaCarrier empty() {
-        return new ArcanaCarrier(0, 0, 0, 0, 0, 0, ArcanaRates.SpeedPreset.NORMAL,
-                SpellSchool.defaultSchool(), 1.0D, 1.0D, 1.0D, 1.0D, 1.0D);
+        return new ArcanaCarrier(0, 0, 0, 0, 0, ArcanaRates.SpeedPreset.NORMAL,
+                SpellSchool.defaultSchool(), 1.0D, 1.0D, 1.0D, 1.0D);
     }
 
     /**
@@ -89,14 +83,12 @@ public record ArcanaCarrier(
         int focus = 0;
         int cooldown = 0;
         int casting = 0;
-        int castTime = 0;
         ArcanaRates.SpeedPreset speed = ArcanaRates.SpeedPreset.NORMAL;
         SpellSchool school = SpellSchool.defaultSchool();
         double amplificationStep = 1.0D;
         double focusStep = 1.0D;
         double cooldownStep = 1.0D;
         double castingStep = 1.0D;
-        double castTimeStep = 1.0D;
 
         for (IModule<?> module : container.modules()) {
             if (!module.isEnabled() || module.getInstalledCount() <= 0) {
@@ -125,9 +117,6 @@ public record ArcanaCarrier(
             } else if (CASTING.getPath().equals(path) && !tool) {
                 casting += count;
                 castingStep = factor(moduleValue(module, CASTING_STEP));
-            } else if (CAST_TIME.getPath().equals(path) && !tool) {
-                castTime += count;
-                castTimeStep = factor(moduleValue(module, CAST_TIME_STEP));
             }
         }
 
@@ -135,11 +124,10 @@ public record ArcanaCarrier(
         mana = rates.clampUnits(ModuleKind.MANA_CONVERSION, mana);
         amplification = rates.clampUnits(ModuleKind.AMPLIFICATION, amplification);
         focus = rates.clampUnits(ModuleKind.FOCUS, focus);
-        cooldown = rates.clampUnits(ModuleKind.COOLDOWN_ACCELERATION, cooldown);
+        cooldown = rates.clampUnits(ModuleKind.COOLDOWN_REDUCTION, cooldown);
         casting = rates.clampUnits(ModuleKind.CASTING_STABILIZATION, casting);
-        castTime = rates.clampUnits(ModuleKind.CAST_TIME, castTime);
-        return new ArcanaCarrier(mana, amplification, focus, cooldown, casting, castTime, speed, school,
-                amplificationStep, focusStep, cooldownStep, castingStep, castTimeStep);
+        return new ArcanaCarrier(mana, amplification, focus, cooldown, casting, speed, school,
+                amplificationStep, focusStep, cooldownStep, castingStep);
     }
 
     /** The carrier stack plus its resolved state, preserving the carrier boundary for accounting. */
@@ -173,17 +161,14 @@ public record ArcanaCarrier(
         int focus = 0;
         int cooldown = 0;
         int casting = 0;
-        int castTime = 0;
         double ampStep = 0.0D;
         double focusStep = 0.0D;
         double cooldownStep = 0.0D;
         double castingStep = 0.0D;
-        double castTimeStep = 0.0D;
         int focusStepUnits = 0;
         int ampStepUnits = 0;
         int cooldownStepUnits = 0;
         int castingStepUnits = 0;
-        int castTimeStepUnits = 0;
         for (EquippedCarrier equippedCarrier : equipped) {
             ArcanaCarrier carrier = equippedCarrier.carrier();
             mana += carrier.manaUnits();
@@ -191,22 +176,19 @@ public record ArcanaCarrier(
             focus += carrier.focusUnits();
             cooldown += carrier.cooldownUnits();
             casting += carrier.castingUnits();
-            castTime += carrier.castTimeUnits();
             ampStep += carrier.amplificationUnits() * carrier.amplificationStep();
             focusStep += carrier.focusUnits() * carrier.focusStep();
             cooldownStep += carrier.cooldownUnits() * carrier.cooldownStep();
             castingStep += carrier.castingUnits() * carrier.castingStep();
-            castTimeStep += carrier.castTimeUnits() * carrier.castTimeStep();
             ampStepUnits += carrier.amplificationUnits();
             focusStepUnits += carrier.focusUnits();
             cooldownStepUnits += carrier.cooldownUnits();
             castingStepUnits += carrier.castingUnits();
-            castTimeStepUnits += carrier.castTimeUnits();
         }
-        return Optional.of(new ArcanaCarrier(mana, amplification, focus, cooldown, casting, castTime,
+        return Optional.of(new ArcanaCarrier(mana, amplification, focus, cooldown, casting,
                 first.manaSpeedPreset(), first.focusSchool(), weighted(ampStep, ampStepUnits),
                 weighted(focusStep, focusStepUnits), weighted(cooldownStep, cooldownStepUnits),
-                weighted(castingStep, castingStepUnits), weighted(castTimeStep, castTimeStepUnits)));
+                weighted(castingStep, castingStepUnits)));
     }
 
     private static void addIfPresent(List<EquippedCarrier> result, ItemStack stack, boolean tool) {
@@ -229,7 +211,7 @@ public record ArcanaCarrier(
 
     private boolean isEmpty() {
         return manaUnits == 0 && amplificationUnits == 0 && focusUnits == 0
-                && cooldownUnits == 0 && castingUnits == 0 && castTimeUnits == 0;
+                && cooldownUnits == 0 && castingUnits == 0;
     }
 
     private static Object moduleValue(IModule<?> module, ResourceLocation key) {

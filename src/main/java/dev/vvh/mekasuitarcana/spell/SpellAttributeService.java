@@ -20,10 +20,8 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 /** Applies powered Arcana contributions as idempotent transient entity modifiers. */
 public final class SpellAttributeService {
     private static final String NAMESPACE = "mekasuitarcana";
-    private static final double AMP_CAP = 200.0D;
-    private static final double FOCUS_CAP = 200.0D;
-    private static final double COOLDOWN_CAP = 500.0D;
-    private static final double CASTING_CAP = 200.0D;
+    private static final double AMP_CAP = 400.0D;
+    private static final double FOCUS_CAP = 400.0D;
     private static final double FULL_CASTING_MOVESPEED_VALUE = 1.8D;
     private static final ResourceLocation MOVESPEED_PROBE_ID =
             ResourceLocation.fromNamespaceAndPath(NAMESPACE, "movement_probe");
@@ -65,16 +63,12 @@ public final class SpellAttributeService {
                     rates.amplificationPercentPerUnit(), AMP_CAP);
             double focus = cappedPercent(rates, ModuleKind.FOCUS, carrier.focusUnits(), carrier.focusStep(),
                     rates.focusPercentPerUnit(), FOCUS_CAP);
-            double cooldown = cappedPercent(rates, ModuleKind.COOLDOWN_ACCELERATION, carrier.cooldownUnits(), carrier.cooldownStep(),
-                    rates.cooldownPercentPerUnit(), COOLDOWN_CAP);
-            double casting = cappedPercent(rates, ModuleKind.CASTING_STABILIZATION, carrier.castingUnits(), carrier.castingStep(),
-                    rates.castingPercentPerUnit(), CASTING_CAP);
             add(entity, AttributeRegistry.SPELL_POWER, modifierId(index, "spell_power"),
                     ArcanaRates.ratingDelta(amp));
             add(entity, carrier.focusSchool().spellPowerAttribute(), modifierId(index, "focus_" + carrier.focusSchool().getSerializedName()),
                     ArcanaRates.ratingDelta(focus));
             add(entity, AttributeRegistry.COOLDOWN_REDUCTION, modifierId(index, "cooldown"),
-                    ArcanaRates.ratingDelta(cooldown));
+                    0.0D);
             add(entity, AttributeRegistry.CAST_TIME_REDUCTION, modifierId(index, "casting"),
                     0.0D);
             hasCastingCarrier |= rates.removesCastingMovementPenalty(carrier.castingUnits());

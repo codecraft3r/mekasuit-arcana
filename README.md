@@ -10,26 +10,23 @@ Connected-client GUI and full-modpack playtesting remain unverified.
 Minecraft 1.21.1 / NeoForge 21.1.248 integration for Mekanism 10.7.19.85 and
 Iron's Spells 'n Spellbooks 3.16.3. Java 21 required.
 
-Six Mekanism modules add powered magic support to MekaSuit Bodyarmor.
+Five Mekanism modules add powered magic support to MekaSuit Bodyarmor.
 Amplification and Focus Units also work on a held Meka-Tool using staff-style
 attribute bonuses. Use your existing spellbook and Iron's normal casting controls.
 
 | Unit | Install cap | Maximum contribution per carrier |
 | --- | ---: | --- |
 | Mana Conversion | 4 | Mana capacity curve 1000 / 4000 / 7000 / 10000 and FE-to-mana conversion |
-| Amplification | 4 | +200% global spell-power rating |
-| Focus | 4 | +200% spell-power rating in one selected school |
-| Cooldown Acceleration | 5 | +500% cooldown-reduction rating |
-| Casting Stabilization | 4 | 25% spell cooldown reduction per unit (100% / no cooldown at 4 units); full casting movement at one unit |
-| Cast Time | 4 | 25% cast time reduction per unit (100% / instant cast at 4 units); uninterruptible casting (concentration) at 1+ units |
+| Amplification | 4 | +400% global spell-power rating (+100% per unit) |
+| Focus | 4 | +400% spell-power rating in one selected school (+100% per unit) |
+| Cooldown Reduction | 4 | 25% spell cooldown reduction per unit (100% / no cooldown at 4 units) |
+| Casting Stabilization | 4 | 25% cast time reduction per unit (100% / instant cast at 4 units); uninterruptible casting (concentration) and full casting movement at 1+ units |
 
-Cooldown Acceleration uses Iron's nonlinear reduction formula (+500% cooldown rating,
-achieving ~20x faster cooldown progression while active). Casting Stabilization provides
-direct linear spell cooldown reduction (25% per installed unit, reaching complete cooldown
-elimination at 4 units) along with unhindered casting movement at 1+ units. Cast Time Unit
-linearly reduces spell cast duration (25% per installed unit, reaching instant cast at 4 units)
-and grants uninterruptible casting concentration (identical to the Amulet of Concentration)
-when 1 or more units are installed and powered.
+Cooldown Reduction provides direct linear spell cooldown reduction (25% per installed unit,
+reaching complete cooldown elimination at 4 units). Casting Stabilization linearly reduces spell
+cast duration (25% per installed unit, reaching instant cast at 4 units), removes the casting
+movement penalty at 1+ units, and grants uninterruptible casting concentration (identical to the
+Amulet of Concentration) when 1 or more units are installed and powered.
 
 ## Using the modules
 
@@ -44,12 +41,11 @@ and energy accounts. Their eligible attribute contributions add together.
 Every restored mana point costs FE. Amplification charges once per Iron's cast
 event; Focus charges only on events from its selected school. Iron's channeled
 spells emit repeated cast events, so their pulses are billed separately.
-Cooldowns consume a fixed load for each active native cooldown entry plus FE for
-extra progress. Casting Stabilization drains energy proportional to cooldown time saved
-when spells are cast, plus a fixed FE load while channeling to maintain movement speed.
-Cast Time drains a fixed FE load while casting plus energy proportional to cast duration saved.
-Lower output reduces reduction percentages and their associated energy costs. Stabilization's
-movement benefit and Cast Time's concentration benefit remain active at 1+ units even at zero output step.
+Cooldown Reduction drains energy proportional to cooldown time saved when spells
+are cast, plus a base slot fee. Casting Stabilization drains energy proportional
+to cast duration saved, plus a fixed FE load while casting. Lower output reduces
+reduction percentages and their associated energy costs. Stabilization's concentration
+and movement benefits remain active at 1+ units even at zero output step.
 
 Acceleration is purchased as the native timers advance, so running out of power
 stops further acceleration. Casting itself continues. Continuous spells retain
