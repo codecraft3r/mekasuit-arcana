@@ -195,9 +195,42 @@ public final class ArcanaRuntime {
         SpellAttributeService.withdraw(player);
         int baseline = MagicManager.getEffectiveSpellCooldown(event.getSpell(), player, event.getCastSource());
         int difference = Math.max(0, baseline - enhanced);
+        int effective = event.getEffectiveCooldown();
         if (difference > 0) {
-            event.setEffectiveCooldown((int) Math.min(Integer.MAX_VALUE,
-                    Math.max(1L, (long) event.getEffectiveCooldown() + difference)));
+            effective = (int) Math.min(Integer.MAX_VALUE,
+                    Math.max(1L, (long) effective + difference));
+        }
+
+        ArcanaRates rates = ArcanaConfig.rates();
+        var equipped = ArcanaCarrier.readEquipped(player);
+        int totalSavedTicks = 0;
+        double totalReductionFraction = 0.0D;
+        for (var equippedCarrier : equipped) {
+            ItemStack stack = equippedCarrier.stack();
+            ArcanaCarrier c = powered(equippedCarrier.carrier(), stack, rates);
+            if (c.castingUnits() <= 0 || c.castingStep() <= 0.0D) {
+                continue;
+            }
+            double step = c.castingStep();
+            double fraction = Math.min(1.0D,
+                    c.castingUnits() * (rates.castingPercentPerUnit() / 100.0D) * step);
+            if (fraction <= 0.0D) {
+                continue;
+            }
+            int savedTicks = (int) Math.round(effective * fraction);
+            double cost = rates.castingFePerTick() + rates.castingSavedTimeFePerTick() * savedTicks;
+            if (pay(stack, cost)) {
+                totalSavedTicks = Math.max(totalSavedTicks, savedTicks);
+                totalReductionFraction = Math.max(totalReductionFraction, fraction);
+            }
+        }
+        if (totalReductionFraction >= 1.0D || (totalSavedTicks > 0 && effective - totalSavedTicks <= 0)) {
+            event.setCanceled(true);
+            event.setEffectiveCooldown(0);
+        } else if (totalSavedTicks > 0) {
+            event.setEffectiveCooldown(Math.max(1, effective - totalSavedTicks));
+        } else {
+            event.setEffectiveCooldown(effective);
         }
         refresh(player);
     }
@@ -240,24 +273,12 @@ public final class ArcanaRuntime {
 
     private static boolean accelerateCasting(ServerPlayer player, ItemStack stack, ArcanaCarrier c,
             ArcanaRates rates, State state, double baseRating, double bonusDelta) {
-        MagicData magic = MagicData.getPlayerMagicData(player);
-        boolean timed = magic.getCastType() == CastType.LONG
-                && magic.getCastingSpellId().equals(state.preparedSpell);
-        double extra = timed ? extraTicks(baseRating, bonusDelta) : 0;
-        double progress = state.castCarry + extra;
-        int ticks = (int) Math.min(Math.max(0, magic.getCastDurationRemaining() - 1), Math.floor(progress));
-        // The binary movement benefit still consumes the fixed casting load at a zero time setting.
-        double cost = rates.castingFePerTick() + rates.castingSavedTimeFePerTick() * ticks;
+        // Casting Stabilization now reduces spell cooldowns rather than accelerating cast duration.
+        // It maintains casting movement freedom while channeling, consuming the base casting FE per tick.
+        double cost = rates.castingFePerTick();
         if (!pay(stack, cost)) {
             state.castCarry = 0;
             return false;
-        }
-        state.castCarry = Math.max(0, progress - Math.floor(progress));
-        for (int i = 0; i < ticks; i++) magic.handleCastDuration();
-        if (ticks > 0) {
-            PacketDistributor.sendToPlayer(player, new UpdateCastingStatePacket(
-                    magic.getCastingSpellId(), magic.getCastingSpellLevel(), magic.getCastDurationRemaining(),
-                    magic.getCastSource(), magic.getCastingEquipmentSlot()));
         }
         return true;
     }

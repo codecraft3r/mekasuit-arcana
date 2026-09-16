@@ -50,7 +50,8 @@ public final class ArcanaTuning {
     /** Maximum per-unit percentage which can still respect the design cap. */
     public static double hardPercentPerUnit(ModuleKind kind) {
         return switch (Objects.requireNonNull(kind, "kind")) {
-            case AMPLIFICATION, FOCUS, CASTING_STABILIZATION -> 50.0D;
+            case AMPLIFICATION, FOCUS -> 50.0D;
+            case CASTING_STABILIZATION -> 25.0D;
             case COOLDOWN_ACCELERATION -> 100.0D;
             case MANA_CONVERSION -> 0.0D;
         };

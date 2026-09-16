@@ -67,6 +67,7 @@ public final class RuntimeTimingVerification {
                 checked("cooldown_no_upfront_double_bonus", () -> cooldownBaseline(server)),
                 checked("canceled_mana_refund", () -> canceledManaRefund(server)),
                 checked("casting_native_long_spell", () -> castingNativeLongSpell(server)),
+                checked("casting_stabilization_cooldown", () -> castingStabilizationCooldown(server)),
                 checked("movement_binary", () -> movementBinary(server)),
                 checked("empty_dry", () -> emptyDry(server))
         };
@@ -205,12 +206,30 @@ public final class RuntimeTimingVerification {
         int baseline = magic.getCastDurationRemaining();
         long beforeEnergy = ArcanaEnergy.stored(body);
         ArcanaRuntime.tick(player);
-        int accelerated = magic.getCastDurationRemaining();
         long afterEnergy = ArcanaEnergy.stored(body);
         boolean passed = !pre.isCanceled() && spell.getCastType() == CastType.LONG && baseline > 1
-                && accelerated < baseline && afterEnergy < beforeEnergy && movementDuringCast > 1.0D;
-        return new Check("", passed, "spell=" + spell.getSpellId() + ", duration=" + baseline + "->" + accelerated
+                && afterEnergy < beforeEnergy && movementDuringCast > 1.0D;
+        return new Check("", passed, "spell=" + spell.getSpellId() + ", duration=" + baseline
                 + ", FE=" + beforeEnergy + "->" + afterEnergy + ", movement=" + movementDuringCast);
+    }
+
+    private static Check castingStabilizationCooldown(MinecraftServer server) {
+        FakePlayer player = player(server, "casting_cooldown");
+        AbstractSpell spell = findLongSpell();
+        if (spell == null) return new Check("", false, "no registered LONG spell found");
+        ItemStack body = body(player, 4_000_000L, install(ArcanaModules.CASTING_STABILIZATION, 4));
+        player.setItemSlot(EquipmentSlot.CHEST, body);
+        ArcanaRuntime.refresh(player);
+        int baseline = io.redspace.ironsspellbooks.capabilities.magic.MagicManager
+                .getEffectiveSpellCooldown(spell, player, CastSource.SPELLBOOK);
+        var event = new io.redspace.ironsspellbooks.api.events.SpellCooldownAddedEvent.Pre(
+                baseline, spell, player, CastSource.SPELLBOOK);
+        long beforeEnergy = ArcanaEnergy.stored(body);
+        NeoForge.EVENT_BUS.post(event);
+        long afterEnergy = ArcanaEnergy.stored(body);
+        boolean passed = event.isCanceled() && event.getEffectiveCooldown() == 0 && afterEnergy < beforeEnergy;
+        return new Check("", passed, "baseline=" + baseline + ", effective=" + event.getEffectiveCooldown()
+                + ", canceled=" + event.isCanceled() + ", FE=" + beforeEnergy + "->" + afterEnergy);
     }
 
     private static Check movementBinary(MinecraftServer server) {

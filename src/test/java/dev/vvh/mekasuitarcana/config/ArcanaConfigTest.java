@@ -168,7 +168,7 @@ class ArcanaConfigTest {
         assertEquals(200.0D, rates.amplificationPercent(4));
         assertEquals(200.0D, rates.focusPercent(4));
         assertEquals(500.0D, rates.cooldownReductionPercent(5));
-        assertEquals(200.0D, rates.castTimeReductionPercent(4));
+        assertEquals(100.0D, rates.castTimeReductionPercent(4));
         assertEquals(4, rates.maxUnits(ModuleKind.CASTING_STABILIZATION));
     }
 

@@ -6,6 +6,7 @@ license = "All Rights Reserved"
 modId = "mekasuitarcana"
 version = "${file.jarVersion}"
 displayName = "MekaSuit Arcana"
+logoFile = "icon.png"
 description = '''
 FE-powered MekaSuit modules that let the suit work as ordinary armor for Iron's
 Spellbooks: suit energy feeds the player's existing mana pool and spell

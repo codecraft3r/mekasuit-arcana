@@ -76,7 +76,7 @@ public final class SpellAttributeService {
             add(entity, AttributeRegistry.COOLDOWN_REDUCTION, modifierId(index, "cooldown"),
                     ArcanaRates.ratingDelta(cooldown));
             add(entity, AttributeRegistry.CAST_TIME_REDUCTION, modifierId(index, "casting"),
-                    ArcanaRates.ratingDelta(casting));
+                    0.0D);
             hasCastingCarrier |= rates.removesCastingMovementPenalty(carrier.castingUnits());
         }
 

@@ -55,7 +55,7 @@ class ArcanaRatesTest {
     void zeroRateCannotMintMana() {
         ArcanaRates broken = new ArcanaRates(
                 List.of(0, 1_000, 4_000, 7_000, 10_000), 0.0D, List.of(100, 400, 1_000, 2_500),
-                50.0D, 500, 50.0D, 500, 100.0D, 20, 40.0D, 50.0D, 20, 40.0D,
+                50.0D, 500, 50.0D, 500, 100.0D, 20, 40.0D, 25.0D, 20, 40.0D,
                 List.of(4, 4, 4, 5, 4));
         assertEquals(0, broken.manaRestorableForFe(1_000.0D, 100));
     }
@@ -99,7 +99,7 @@ class ArcanaRatesTest {
         int normal = RATES.manaConversionFePerTick(ArcanaRates.SpeedPreset.NORMAL);
         int high = RATES.manaConversionFePerTick(ArcanaRates.SpeedPreset.HIGH);
         int maximum = RATES.manaConversionFePerTick(ArcanaRates.SpeedPreset.MAXIMUM);
-        assertTrue(low < normal && normal < high && high < maximum);
+        assertTrue(low > 0 && low < normal && normal < high && high < maximum);
     }
 
     @Test
@@ -124,9 +124,10 @@ class ArcanaRatesTest {
     }
 
     @Test
-    @DisplayName("Iron's soft cap is reproduced, not approximated")
-    void softCapMatchesIronsCurve() {
-        assertEquals(1.0D, ArcanaRates.ironSoftCap(1.0D), "an unmodified attribute is the identity");
+    @DisplayName("the ironSoftCap curve matches bytecode from the pinned jar")
+    void ironSoftCapReproducesThePinnedJar() {
+        assertEquals(0.0D, ArcanaRates.ironSoftCap(Double.NaN));
+        assertEquals(1.0D, ArcanaRates.ironSoftCap(1.0D), "identity below the knee");
         assertEquals(1.5D, ArcanaRates.ironSoftCap(1.5D), "the curve is linear up to the knee");
         assertEquals(1.875D, ArcanaRates.ironSoftCap(3.0D), "2.0 - 0.25 / (3.0 - 1.0)");
         assertEquals(1.95D, ArcanaRates.ironSoftCap(6.0D), "2.0 - 0.25 / (6.0 - 1.0)");
@@ -138,10 +139,13 @@ class ArcanaRatesTest {
     void fullStacksDeliverTheDesignMaximum() {
         assertEquals(1.0D, RATES.cooldownReductionMultiplier(0), "no units, no change");
         assertEquals(1.0D, RATES.castTimeReductionMultiplier(0));
+        assertEquals(0.75D, RATES.castTimeReductionMultiplier(1), 1.0E-9D, "25% reduction at 1 unit");
+        assertEquals(0.50D, RATES.castTimeReductionMultiplier(2), 1.0E-9D, "50% reduction at 2 units");
+        assertEquals(0.25D, RATES.castTimeReductionMultiplier(3), 1.0E-9D, "75% reduction at 3 units");
+        assertEquals(0.0D, RATES.castTimeReductionMultiplier(4), 1.0E-9D, "no cooldown at 4 units");
         assertEquals(0.05D, RATES.cooldownReductionMultiplier(5), 1.0E-9D,
                 "+500% reaches the soft cap 0.05 multiplier, so cooldowns are 20x shorter");
-        assertEquals(0.125D, RATES.castTimeReductionMultiplier(4), 1.0E-9D,
-                "+200% reaches a 0.125 multiplier, so casts are 8x faster");
+        assertEquals(0.0D, RATES.castTimeReductionMultiplier(99), 1.0E-9D, "clamped at the cap");
         assertEquals(0.05D, RATES.cooldownReductionMultiplier(99), 1.0E-9D, "clamped at the cap");
     }
 

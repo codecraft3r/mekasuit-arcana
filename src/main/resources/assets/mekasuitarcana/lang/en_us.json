@@ -13,7 +13,7 @@
   "description.mekasuitarcana.amplification": "Increases global spell power while the carrier is powered.",
   "description.mekasuitarcana.focus": "Increases one selected school's spell power while powered.",
   "description.mekasuitarcana.cooldown_acceleration": "Reduces spell cooldowns while powered, consuming energy over time.",
-  "description.mekasuitarcana.casting_stabilization": "Reduces cast time and removes the casting movement penalty while powered.",
+  "description.mekasuitarcana.casting_stabilization": "Reduces spell cooldowns and removes the casting movement penalty while powered.",
   "module.mekasuitarcana.mana_speed_preset": "Mana Conversion Speed",
   "module.mekasuitarcana.amplification_step": "Amplification Step",
   "module.mekasuitarcana.focus_school": "Focus School",

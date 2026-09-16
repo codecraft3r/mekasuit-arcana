@@ -158,7 +158,7 @@ public record ArcanaRates(
                 100.0D,
                 20,
                 40.0D,
-                50.0D,
+                25.0D,
                 20,
                 40.0D,
                 List.of(4, 4, 4, 5, 4));
@@ -230,10 +230,15 @@ public record ArcanaRates(
                 * Math.max(0.0D, cooldownPercentPerUnit);
     }
 
-    /** Cast-time reduction percent rating for a unit count, clamped to the cap. */
-    public double castTimeReductionPercent(int units) {
+    /** Cooldown reduction percent from Casting Stabilization for a unit count, clamped to the cap. */
+    public double castingCooldownReductionPercent(int units) {
         return clampUnits(ModuleKind.CASTING_STABILIZATION, units)
                 * Math.max(0.0D, castingPercentPerUnit);
+    }
+
+    /** Compatibility alias for cast time reduction queries. */
+    public double castTimeReductionPercent(int units) {
+        return castingCooldownReductionPercent(units);
     }
 
     /**
@@ -284,9 +289,18 @@ public record ArcanaRates(
         return reductionMultiplier(ratingDelta(cooldownReductionPercent(units)));
     }
 
-    /** Multiplier Iron's applies to a spell's base cast time for the rating this many units add. */
+    /**
+     * Cooldown multiplier for Casting Stabilization: linear reduction of 25% per unit,
+     * reaching 0.0 (no cooldown) at 4 units.
+     */
+    public double castingCooldownReductionMultiplier(int units) {
+        double percent = castingCooldownReductionPercent(units);
+        return Math.max(0.0D, 1.0D - (percent / 100.0D));
+    }
+
+    /** Multiplier for Casting Stabilization reduction (compatibility alias). */
     public double castTimeReductionMultiplier(int units) {
-        return reductionMultiplier(ratingDelta(castTimeReductionPercent(units)));
+        return castingCooldownReductionMultiplier(units);
     }
 
     /**
