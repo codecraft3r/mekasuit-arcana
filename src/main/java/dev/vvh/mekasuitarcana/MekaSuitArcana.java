@@ -25,6 +25,8 @@ public final class MekaSuitArcana {
 
     public MekaSuitArcana(IEventBus modBus, ModContainer container) {
         ArcanaConfig.register(container);
+        modBus.addListener(ArcanaConfig::onConfigLoading);
+        modBus.addListener(ArcanaConfig::onConfigReloading);
         ArcanaModules.register(modBus);
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(ArcanaModules::registerInterModComms));
         ArcanaRuntime.register(NeoForge.EVENT_BUS);

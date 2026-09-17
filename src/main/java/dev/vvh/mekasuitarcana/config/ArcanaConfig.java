@@ -19,6 +19,36 @@ public final class ArcanaConfig {
         container.registerConfig(ModConfig.Type.SERVER, Spec.SPEC);
     }
 
+    public static void onConfigLoading(net.neoforged.fml.event.config.ModConfigEvent.Loading event) {
+        handleConfig(event.getConfig());
+    }
+
+    public static void onConfigReloading(net.neoforged.fml.event.config.ModConfigEvent.Reloading event) {
+        handleConfig(event.getConfig());
+    }
+
+    private static void handleConfig(ModConfig modConfig) {
+        if (modConfig.getSpec() == Spec.SPEC) {
+            var loaded = modConfig.getLoadedConfig();
+            if (loaded != null && loaded.config() instanceof com.electronwill.nightconfig.core.CommentedConfig commentedConfig) {
+                java.nio.file.Path path = modConfig.getFullPath();
+                if (ArcanaConfigMigrator.migrate(commentedConfig, path)) {
+                    Spec.SPEC.correct(commentedConfig);
+                    loaded.save();
+                }
+            }
+        }
+    }
+
+    public static int configVersion() {
+        if (!Spec.SPEC.isLoaded()) return ArcanaConfigMigrator.CURRENT_VERSION;
+        try {
+            return Spec.CONFIG_VERSION.get();
+        } catch (Exception e) {
+            return ArcanaConfigMigrator.CURRENT_VERSION;
+        }
+    }
+
     /** Live server snapshot; before load, the conservative locked defaults apply. */
     public static ArcanaRates rates() {
         return ArcanaTuning.balance(Spec.loadedValues());
@@ -51,6 +81,7 @@ public final class ArcanaConfig {
         private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
         private static final ModConfigSpec SPEC;
 
+        private static final ConfigValue<Integer> CONFIG_VERSION;
         private static final ConfigValue<Double> FE_PER_MANA;
         private static final ConfigValue<Integer> MANA_MAX_UNITS;
         private static final ConfigValue<Integer> MAX_MANA_1;
@@ -84,6 +115,9 @@ public final class ArcanaConfig {
         private static final ConfigValue<Integer> MAX_SUMMONS;
 
         static {
+            CONFIG_VERSION = BUILDER.comment("Configuration file version. Used for automated migrations.")
+                    .defineInRange("config_version", ArcanaConfigMigrator.CURRENT_VERSION, 0, Integer.MAX_VALUE);
+
             ArcanaTuning.Values defaults = ArcanaTuning.Values.defaults();
             BUILDER.comment("MekaSuit Arcana server balance; player module settings remain in Mekanism.")
                     .push("balance");

@@ -57,7 +57,12 @@ dependencies {
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.3'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.3'
+    testImplementation 'org.slf4j:slf4j-api:2.0.16'
+    testRuntimeOnly 'org.slf4j:slf4j-simple:2.0.16'
+    testImplementation 'com.electronwill.night-config:core:3.8.3'
+    testImplementation 'com.electronwill.night-config:toml:3.8.3'
 }
+
 
 // The NeoForge loader-booted unit-test target (neoForge.unitTest) is deliberately NOT enabled.
 // Its JUnit launch target starts FML, which resolves this mod's declared dependencies, so it

@@ -53,7 +53,10 @@ Iron's normal casting controls.
 
 ## Server Configuration
 
-Server configuration is automatically generated at `world/serverconfig/mekasuitarcana-server.toml`. Server operators can customize:
+Server configuration is automatically generated at `world/serverconfig/mekasuitarcana-server.toml`. Configuration versions are tracked automatically via `config_version`; outdated or missing configuration files are automatically backed up (`.v<old>.bak`) and cleanly migrated forward with existing operator settings preserved (including legacy key renames).
+
+Server operators can customize:
+- `config_version`: Configuration schema version integer (managed automatically).
 - `fe_per_mana`: FE cost per unit of mana converted.
 - Max unit limits (0–4) and enabled/disabled status for each individual module type.
 - Base energy costs and per-saved-tick scaling rates for cooldown reduction and cast stabilization.
@@ -78,7 +81,7 @@ On Windows, replace `./gradlew` with `.\gradlew.bat`.
 
 ## Verification
 
-- **Unit Tests**: 43 JUnit tests cover arithmetic, rate conversions, config boundaries, summon limiter FIFO tracking, and tuning.
+- **Unit Tests**: 46 JUnit tests cover arithmetic, rate conversions, config boundaries, summon limiter FIFO tracking, config migration and backups, and tuning.
 - **Runtime Verification**: A separate runtime test fixture exercises mod interactions against real pinned binaries on an isolated server thread. See [docs/RUNTIME_PROOF.md](docs/RUNTIME_PROOF.md) for details.
 - **Damage Routing**: Uses standard Mekanism damage absorption pipelines for incoming magic damage.
 
