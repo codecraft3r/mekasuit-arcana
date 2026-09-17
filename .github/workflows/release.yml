@@ -36,11 +36,6 @@ jobs:
           java-version: '21'
           cache: gradle
 
-      - name: Set up Python
-        uses: actions/setup-python@39cd14951b08e74b54015eac00f08242b7538776 # v5.1.1
-        with:
-          python-version: '3.11'
-
       - name: Resolve tag and version
         id: resolve
         run: |
