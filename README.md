@@ -78,7 +78,7 @@ python tools/verify-release.py
 
 On Windows, replace `./gradlew` with `.\gradlew.bat`.
 
-**Output**: `build/libs/mekasuit-arcana-0.1.0.jar`. Install this jar on both server and client alongside Mekanism, Iron's Spellbooks, and their standard dependencies.
+**Output**: `build/libs/mekasuit-arcana-<version>.jar` (e.g. `mekasuit-arcana-0.1.0-1.21.1.jar`). Install this jar on both server and client alongside Mekanism, Iron's Spellbooks, and their standard dependencies.
 
 ## Verification
 

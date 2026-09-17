@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'dev.vvh.mekasuitarcana'
-version = '0.1.0'
+version = project.findProperty('modVersion') ?: (project.findProperty('version') && project.property('version') != 'unspecified' ? project.property('version') : (project.findProperty('mod_version') ?: '0.1.0-1.21.1'))
 
 tasks.named('jar', Jar) {
     manifest.attributes('Implementation-Version': project.version)
