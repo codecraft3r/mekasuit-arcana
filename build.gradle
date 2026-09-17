@@ -47,12 +47,13 @@ repositories {
     }
 }
 
-// Modrinth Maven coordinates use project IDs: Mekanism = Ce6I4WUE and
-// Iron's Spellbooks = s4OWxYQQ. These are compile-only because the runtime
-// instance supplies the real, loaded mods.
+// Modrinth Maven coordinates use project IDs: Mekanism = Ce6I4WUE,
+// Iron's Spellbooks = s4OWxYQQ, and GeckoLib = 8BmcQJ2H. These are compile-only
+// because the runtime instance supplies the real, loaded mods.
 dependencies {
     compileOnly "maven.modrinth:Ce6I4WUE:${mekanism_version}"
     compileOnly "maven.modrinth:s4OWxYQQ:${irons_spellbooks_version}"
+    compileOnly "maven.modrinth:8BmcQJ2H:${geckolib_version}"
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.3'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.3'

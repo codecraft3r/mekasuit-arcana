@@ -52,5 +52,7 @@
   "mekasuitarcana.spell_school.blood": "Blood",
   "mekasuitarcana.spell_school.evocation": "Evocation",
   "mekasuitarcana.spell_school.nature": "Nature",
-  "mekasuitarcana.spell_school.eldritch": "Eldritch"
+  "mekasuitarcana.spell_school.eldritch": "Eldritch",
+  "message.mekasuitarcana.black_hole_limit": "Black Hole limit reached (%s) - oldest Black Hole collapsed.",
+  "message.mekasuitarcana.summon_limit": "Summon limit reached (%s) - oldest summon dismissed."
 }

@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/codecraft3r/mekasuit-arcana/actions/workflows/ci.yml/badge.svg)](https://github.com/codecraft3r/mekasuit-arcana/actions/workflows/ci.yml)
 
-**Early preview.** 36 unit tests and 16 isolated server assertions have passed.
+**Early preview.** 43 unit tests and 16 isolated server assertions have passed.
 Connected-client GUI and full-modpack playtesting remain unverified.
 
 Minecraft 1.21.1 / NeoForge 21.1.248 integration for Mekanism 10.7.19.85 and
@@ -53,12 +53,15 @@ Iron's normal casting controls.
 
 ## Server Configuration
 
-Server balance configuration is automatically generated at `world/serverconfig/mekasuitarcana-server.toml`. Server operators can customize:
+Server configuration is automatically generated at `world/serverconfig/mekasuitarcana-server.toml`. Server operators can customize:
 - `fe_per_mana`: FE cost per unit of mana converted.
 - Max unit limits (0–4) and enabled/disabled status for each individual module type.
 - Base energy costs and per-saved-tick scaling rates for cooldown reduction and cast stabilization.
 - Mana capacity curve tiers (defaults: 1,000 / 4,000 / 7,000 / 10,000) and preset speed limits.
 - Spell power percentage multipliers per unit (defaults: 100.0% per unit).
+- **Concurrency Limits (`[limits]`)**:
+  - `max_black_holes`: Maximum concurrent active Black Holes per player (default `3`; set to `0` or negative to disable).
+  - `max_summons`: Maximum concurrent active summons (mobs, summoned weapons, etc.) per player (default `20`; set to `0` or negative to disable). Projectiles (arrows, missiles, firebolts, etc.) are explicitly excluded. When the cap is exceeded, the oldest active instance is cleanly dismissed so new casts succeed without interruption.
 
 ## Building
 
@@ -75,7 +78,7 @@ On Windows, replace `./gradlew` with `.\gradlew.bat`.
 
 ## Verification
 
-- **Unit Tests**: 36 JUnit tests cover arithmetic, rate conversions, config boundaries, and tuning.
+- **Unit Tests**: 43 JUnit tests cover arithmetic, rate conversions, config boundaries, summon limiter FIFO tracking, and tuning.
 - **Runtime Verification**: A separate runtime test fixture exercises mod interactions against real pinned binaries on an isolated server thread. See [docs/RUNTIME_PROOF.md](docs/RUNTIME_PROOF.md) for details.
 - **Damage Routing**: Uses standard Mekanism damage absorption pipelines for incoming magic damage.
 

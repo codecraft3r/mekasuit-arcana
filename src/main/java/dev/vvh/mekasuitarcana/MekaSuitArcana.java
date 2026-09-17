@@ -28,5 +28,6 @@ public final class MekaSuitArcana {
         ArcanaModules.register(modBus);
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(ArcanaModules::registerInterModComms));
         ArcanaRuntime.register(NeoForge.EVENT_BUS);
+        dev.vvh.mekasuitarcana.limit.SummonLimitService.register(NeoForge.EVENT_BUS);
     }
 }

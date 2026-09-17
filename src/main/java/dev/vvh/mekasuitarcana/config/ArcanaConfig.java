@@ -29,6 +29,24 @@ public final class ArcanaConfig {
         return Spec.loadedValues().map(values -> !values.disabledModules().contains(kind)).orElse(true);
     }
 
+    public static int maxBlackHoles() {
+        if (!Spec.SPEC.isLoaded()) return 3;
+        try {
+            return Spec.MAX_BLACK_HOLES.get();
+        } catch (Exception e) {
+            return 3;
+        }
+    }
+
+    public static int maxSummons() {
+        if (!Spec.SPEC.isLoaded()) return 20;
+        try {
+            return Spec.MAX_SUMMONS.get();
+        } catch (Exception e) {
+            return 20;
+        }
+    }
+
     private static final class Spec {
         private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
         private static final ModConfigSpec SPEC;
@@ -62,6 +80,8 @@ public final class ArcanaConfig {
         private static final ConfigValue<Boolean> DISABLED_FOCUS;
         private static final ConfigValue<Boolean> DISABLED_COOLDOWN;
         private static final ConfigValue<Boolean> DISABLED_CASTING;
+        private static final ConfigValue<Integer> MAX_BLACK_HOLES;
+        private static final ConfigValue<Integer> MAX_SUMMONS;
 
         static {
             ArcanaTuning.Values defaults = ArcanaTuning.Values.defaults();
@@ -114,6 +134,13 @@ public final class ArcanaConfig {
             DISABLED_FOCUS = BUILDER.define("focus", false);
             DISABLED_COOLDOWN = BUILDER.define("cooldown_reduction", false);
             DISABLED_CASTING = BUILDER.define("casting_stabilization", false);
+            BUILDER.pop();
+
+            BUILDER.push("limits");
+            MAX_BLACK_HOLES = BUILDER.comment("Maximum number of concurrent active Black Holes a player may have (default 3; set to 0 or negative to disable limit).")
+                    .defineInRange("max_black_holes", 3, 0, 100);
+            MAX_SUMMONS = BUILDER.comment("Maximum number of concurrent active summons (mobs, summoned weapons, etc.) a player may have (default 20; set to 0 or negative to disable limit).")
+                    .defineInRange("max_summons", 20, 0, 1000);
             BUILDER.pop();
             SPEC = BUILDER.build();
         }
