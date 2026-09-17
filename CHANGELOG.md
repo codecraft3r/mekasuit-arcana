@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0-1.21.1] - 2026-09-16
+## [0.1.0] - 2026-09-16
 
 ### Added
 - **Arcane Transformer Unit** (`mana_conversion_unit`): Converts MekaSuit Forge Energy into Iron's Spellbooks player mana pool across four speed presets (Low, Normal, High, Maximum) and four unit capacity tiers (1,000 to 10,000 max mana).
@@ -23,5 +23,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Aligned module naming, tooltips, and balance caps to Mekanism conventions and Iron's Spellbooks progression.
 
-[Unreleased]: https://github.com/codecraft3r/mekasuit-arcana/compare/v0.1.0-1.21.1...HEAD
-[0.1.0-1.21.1]: https://github.com/codecraft3r/mekasuit-arcana/releases/tag/v0.1.0-1.21.1
+[Unreleased]: https://github.com/codecraft3r/mekasuit-arcana/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/codecraft3r/mekasuit-arcana/releases/tag/v0.1.0

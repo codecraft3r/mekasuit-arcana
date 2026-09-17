@@ -70,7 +70,12 @@ jobs:
           TAG: ${{ steps.resolve.outputs.tag }}
           VERSION: ${{ steps.resolve.outputs.version }}
         run: |
+          PRERELEASE_FLAG=""
+          if [[ "$VERSION" =~ ^0\. ]] || [[ "$TAG" =~ (alpha|beta|rc|pre) ]]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
           gh release create "${TAG}" \
             "build/libs/mekasuit-arcana-${VERSION}.jar#mekasuit-arcana-${VERSION}.jar" \
             --title "MekaSuit Arcana ${TAG}" \
-            --notes-file RELEASE_NOTES.md
+            --notes-file RELEASE_NOTES.md \
+            $PRERELEASE_FLAG
