@@ -1,16 +1,18 @@
 {
   "type": "minecraft:crafting_shaped",
+  "category": "misc",
   "pattern": [
-    "CAC",
-    "QBQ",
-    "CTC"
+    "MAM",
+    "YPY",
+    "CWC"
   ],
   "key": {
     "A": { "item": "irons_spellbooks:concentration_amulet" },
-    "B": { "item": "mekanism:module_base" },
-    "C": { "item": "mekanism:elite_control_circuit" },
-    "Q": { "item": "minecraft:quartz" },
-    "T": { "item": "minecraft:clock" }
+    "C": { "item": "mekanism:ultimate_control_circuit" },
+    "M": { "item": "irons_spellbooks:mithril_ingot" },
+    "P": { "item": "mekanism:module_base" },
+    "W": { "item": "irons_spellbooks:mithril_weave" },
+    "Y": { "item": "mekanism:alloy_atomic" }
   },
   "result": {
     "id": "mekasuitarcana:casting_stabilization_unit",

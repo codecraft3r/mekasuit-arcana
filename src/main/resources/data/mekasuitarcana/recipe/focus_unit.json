@@ -1,15 +1,18 @@
 {
   "type": "minecraft:crafting_shaped",
+  "category": "misc",
   "pattern": [
-    "CLC",
-    "QBQ",
-    "CLC"
+    "MRM",
+    "APA",
+    "CWC"
   ],
   "key": {
-    "B": { "item": "mekanism:module_base" },
+    "A": { "item": "mekanism:alloy_atomic" },
     "C": { "item": "mekanism:ultimate_control_circuit" },
-    "L": { "item": "minecraft:lapis_lazuli" },
-    "Q": { "item": "minecraft:quartz" }
+    "M": { "item": "irons_spellbooks:mithril_ingot" },
+    "P": { "item": "mekanism:module_base" },
+    "R": { "item": "irons_spellbooks:affinity_ring" },
+    "W": { "item": "irons_spellbooks:mithril_weave" }
   },
   "result": {
     "id": "mekasuitarcana:focus_unit",

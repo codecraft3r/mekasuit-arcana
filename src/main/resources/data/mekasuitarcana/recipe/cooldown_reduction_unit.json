@@ -1,15 +1,18 @@
 {
   "type": "minecraft:crafting_shaped",
+  "category": "misc",
   "pattern": [
-    "CRC",
-    "QBQ",
-    "CRC"
+    "MOM",
+    "APA",
+    "CWC"
   ],
   "key": {
-    "B": { "item": "mekanism:module_base" },
-    "C": { "item": "mekanism:elite_control_circuit" },
-    "Q": { "item": "minecraft:quartz" },
-    "R": { "item": "minecraft:redstone" }
+    "A": { "item": "mekanism:alloy_atomic" },
+    "C": { "item": "mekanism:ultimate_control_circuit" },
+    "M": { "item": "irons_spellbooks:mithril_ingot" },
+    "O": { "item": "irons_spellbooks:cooldown_upgrade_orb" },
+    "P": { "item": "mekanism:module_base" },
+    "W": { "item": "irons_spellbooks:mithril_weave" }
   },
   "result": {
     "id": "mekasuitarcana:cooldown_reduction_unit",

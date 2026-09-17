@@ -1,15 +1,18 @@
 {
   "type": "minecraft:crafting_shaped",
+  "category": "misc",
   "pattern": [
-    "ECE",
-    "NBN",
-    "ECE"
+    "MSM",
+    "APA",
+    "CWC"
   ],
   "key": {
-    "B": { "item": "mekanism:module_base" },
+    "A": { "item": "mekanism:alloy_atomic" },
     "C": { "item": "mekanism:ultimate_control_circuit" },
-    "E": { "item": "minecraft:end_crystal" },
-    "N": { "item": "minecraft:nether_star" }
+    "M": { "item": "irons_spellbooks:mithril_ingot" },
+    "P": { "item": "mekanism:module_base" },
+    "S": { "item": "irons_spellbooks:arcane_salvage" },
+    "W": { "item": "irons_spellbooks:mithril_weave" }
   },
   "result": {
     "id": "mekasuitarcana:amplification_unit",
