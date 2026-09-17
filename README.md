@@ -57,6 +57,7 @@ Server configuration is automatically generated at `world/serverconfig/mekasuita
 
 Server operators can customize:
 - `config_version`: Configuration schema version integer (managed automatically).
+- `enable_builtin_recipes`: Enable the mod's built-in crafting recipes (default `true`). Set to `false` for modpacks providing custom recipes (e.g. via KubeJS or CraftTweaker).
 - `fe_per_mana`: FE cost per unit of mana converted.
 - Max unit limits (0–4) and enabled/disabled status for each individual module type.
 - Base energy costs and per-saved-tick scaling rates for cooldown reduction and cast stabilization.

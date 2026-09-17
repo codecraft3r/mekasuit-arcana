@@ -28,6 +28,7 @@ public final class MekaSuitArcana {
         modBus.addListener(ArcanaConfig::onConfigLoading);
         modBus.addListener(ArcanaConfig::onConfigReloading);
         ArcanaModules.register(modBus);
+        dev.vvh.mekasuitarcana.condition.BuiltinRecipesEnabledCondition.register(modBus);
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(ArcanaModules::registerInterModComms));
         ArcanaRuntime.register(NeoForge.EVENT_BUS);
         dev.vvh.mekasuitarcana.limit.SummonLimitService.register(NeoForge.EVENT_BUS);

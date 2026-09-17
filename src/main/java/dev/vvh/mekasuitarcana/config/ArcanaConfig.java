@@ -49,6 +49,15 @@ public final class ArcanaConfig {
         }
     }
 
+    public static boolean enableBuiltinRecipes() {
+        if (!Spec.SPEC.isLoaded()) return true;
+        try {
+            return Spec.ENABLE_BUILTIN_RECIPES.get();
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
     /** Live server snapshot; before load, the conservative locked defaults apply. */
     public static ArcanaRates rates() {
         return ArcanaTuning.balance(Spec.loadedValues());
@@ -82,6 +91,7 @@ public final class ArcanaConfig {
         private static final ModConfigSpec SPEC;
 
         private static final ConfigValue<Integer> CONFIG_VERSION;
+        private static final ConfigValue<Boolean> ENABLE_BUILTIN_RECIPES;
         private static final ConfigValue<Double> FE_PER_MANA;
         private static final ConfigValue<Integer> MANA_MAX_UNITS;
         private static final ConfigValue<Integer> MAX_MANA_1;
@@ -117,6 +127,9 @@ public final class ArcanaConfig {
         static {
             CONFIG_VERSION = BUILDER.comment("Configuration file version. Used for automated migrations.")
                     .defineInRange("config_version", ArcanaConfigMigrator.CURRENT_VERSION, 0, Integer.MAX_VALUE);
+
+            ENABLE_BUILTIN_RECIPES = BUILDER.comment("Enable the mod's built-in crafting recipes for modules. Set to false for modpacks providing custom recipes (e.g. via KubeJS or CraftTweaker).")
+                    .define("enable_builtin_recipes", true);
 
             ArcanaTuning.Values defaults = ArcanaTuning.Values.defaults();
             BUILDER.comment("MekaSuit Arcana server balance; player module settings remain in Mekanism.")

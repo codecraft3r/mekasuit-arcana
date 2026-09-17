@@ -1,4 +1,9 @@
 {
+  "neoforge:conditions": [
+    {
+      "type": "mekasuitarcana:builtin_recipes_enabled"
+    }
+  ],
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
